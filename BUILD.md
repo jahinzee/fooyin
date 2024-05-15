@@ -42,6 +42,21 @@ sudo pacman -S --needed \
     kdsingleapplication taglib ffmpeg
 ```
 
+### openSUSE Tumbleweed
+
+```
+sudo zypper update
+sudo zypper install \
+    git cmake clang qt6-base-devel \
+    libtag-devel ffmpeg-6 \
+    alsa-devel SDL2-devel pipewire-devel \
+    qt6-linguist-devel qt6-svg-devel \
+    ffmpeg-7-libswscale-devel ffmpeg-7-libswresample-devel \
+    ffmpeg-7-libpostproc-devel ffmpeg-7-libavutil-devel \
+    ffmpeg-7-libavformat-devel ffmpeg-7-libavfilter-devel \
+    ffmpeg-7-libavdevice-devel ffmpeg-7-libavcodec-devel
+```
+
 ## Building
 
 1. Using a terminal, switch to the directory where fooyin will be checked out
