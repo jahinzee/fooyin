@@ -16,6 +16,8 @@ This document outlines the upcoming features for fooyin - they are listed in no 
 * Renaming/Copying/Moving files on disk
 * Integrate Last.fm for scrobbling
 * Integrate Discogs for metadata searching
+* Internet radio support
+* Archive support (Adding to library, playback)
 
 ## Enhancements
 * ~~Support custom tags within scripts~~
@@ -31,3 +33,4 @@ This document outlines the upcoming features for fooyin - they are listed in no 
 * Musical spectrum
 * VU meter
 * Spectrogram
+* Playback queue viewer

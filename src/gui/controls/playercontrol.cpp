@@ -28,8 +28,10 @@
 #include <utils/settings/settingsmanager.h>
 #include <utils/utils.h>
 
+#include <QAction>
 #include <QHBoxLayout>
-#include <QToolButton>
+#include <QJsonObject>
+#include <QMenu>
 
 namespace Fooyin {
 struct PlayerControl::Private
@@ -69,17 +71,25 @@ struct PlayerControl::Private
             next->setDefaultAction(nextCmd->action());
         }
 
-        stop->setStretchEnabled(true);
-        prev->setStretchEnabled(true);
-        playPause->setStretchEnabled(true);
-        next->setStretchEnabled(true);
+        updateButtonStyle();
+    }
 
-        stop->setAutoRaise(true);
-        prev->setAutoRaise(true);
-        playPause->setAutoRaise(true);
-        next->setAutoRaise(true);
+    void updateButtonStyle() const
+    {
+        const auto options
+            = static_cast<Settings::Gui::ToolButtonOptions>(settings->value<Settings::Gui::ToolButtonStyle>());
 
-        updateIcons();
+        stop->setStretchEnabled(options & Settings::Gui::Stretch);
+        stop->setAutoRaise(!(options & Settings::Gui::Raise));
+
+        prev->setStretchEnabled(options & Settings::Gui::Stretch);
+        prev->setAutoRaise(!(options & Settings::Gui::Raise));
+
+        playPause->setStretchEnabled(options & Settings::Gui::Stretch);
+        playPause->setAutoRaise(!(options & Settings::Gui::Raise));
+
+        next->setStretchEnabled(options & Settings::Gui::Stretch);
+        next->setAutoRaise(!(options & Settings::Gui::Raise));
     }
 
     void updateIcons() const
@@ -113,6 +123,7 @@ PlayerControl::PlayerControl(ActionManager* actionManager, PlayerController* pla
 {
     auto* layout = new QHBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(0);
 
     layout->addWidget(p->stop);
     layout->addWidget(p->prev);
@@ -123,6 +134,7 @@ PlayerControl::PlayerControl(ActionManager* actionManager, PlayerController* pla
                      [this](PlayState state) { p->stateChanged(state); });
 
     settings->subscribe<Settings::Gui::IconTheme>(this, [this]() { p->updateIcons(); });
+    settings->subscribe<Settings::Gui::ToolButtonStyle>(this, [this]() { p->updateButtonStyle(); });
 }
 
 PlayerControl::~PlayerControl() = default;
@@ -136,7 +148,6 @@ QString PlayerControl::layoutName() const
 {
     return QStringLiteral("PlayerControls");
 }
-
 } // namespace Fooyin
 
 #include "moc_playercontrol.cpp"

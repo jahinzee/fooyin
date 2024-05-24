@@ -1,5 +1,106 @@
 # Changelog
 
+## [0.4.3](https://github.com/ludouzi/fooyin/releases/tag/v0.4.3) (2024-05-23)
+
+### Improvements
+
+* Interface
+  - Support changing volume by scrolling on column icon ([#106](https://github.com/ludouzi/fooyin/pull/106))
+  - Add options to control appearance of tool buttons
+  - Add options to override margins, splitter handle sizes
+  - Make quick setup dialog modal
+* Playlist
+  - Add channels column
+  - Add last modified column
+  - Add follow playback options to playback menu
+  - Improve performance when updating playback statistics ([#103](https://github.com/ludouzi/fooyin/issues/103))
+* WaveBar
+  - Add optional labels
+  - Improve behaviour when seeking
+
+### Fixes
+
+* General
+  - Fix loading system translations
+  - Fix some adding libraries while layout editing mode is active ([#90](https://github.com/ludouzi/fooyin/issues/90))
+* Engine
+  - Fix high-res file playback ([#100](https://github.com/ludouzi/fooyin/issues/100))
+* DirBrowser
+  - Fix hang when using double click to play
+* Interface
+  - Fix font/row height inconsistencies ([#101](https://github.com/ludouzi/fooyin/issues/101))
+  - Fix layout editing mode not working under recent Qt versions ([#111](https://github.com/ludouzi/fooyin/issues/111))
+  - Fix wrong album art being displayed for untagged/poorly tagged files
+  - Resolve crashes using undo/redo in layout editing mode
+* LibraryTree
+  - Fix track count decrementing on tracks updating
+* MPRIS
+  - Fix artwork caching ([#87](https://github.com/ludouzi/fooyin/issues/87))
+  - Fix sending firstUsed, lastUsed metadata
+* PipeWire
+  - Fix playback of some file types ([#100](https://github.com/ludouzi/fooyin/issues/100))
+  - Fix playback of files with more than 3 channels
+  - Handle server restarts ([#85](https://github.com/ludouzi/fooyin/issues/85))
+* Playlist
+  - Fix autoscrolling when updating tracks
+  - Fix dropping at end of playlist
+  - Fix loading default column alignments
+  - Fix sorting track numbers under some systems ([#112](https://github.com/ludouzi/fooyin/issues/112))
+  - Handle column name/script changes
+  - Resolve rare crash on startup
+* TagEditor
+  - Fix saving changed metadata
+* WaveBar
+  - Fix crash when seeking ([#105](https://github.com/ludouzi/fooyin/issues/105))
+
+
+## [0.4.2](https://github.com/ludouzi/fooyin/releases/tag/v0.4.2) (2024-05-16)
+
+### Features
+
+* Playlist: Artwork columns
+
+### Improvements
+
+* Artwork: Add configurable pixmap cache size
+* Artwork: Update cache for changed tracks
+* Artwork: Load image data asynchronously ([#75](https://github.com/ludouzi/fooyin/pull/75))
+* Artwork: Add svg icon for the no cover/placeholder image
+* Layouts: Add setting to control root margin
+* Playlist: Add option to start playback on send
+* Playlist: Add option to resume previous playback state on startup
+* Playlist: Improve add/remove and hide/show of columns
+* Playlist: Improve performance when removing tracks
+* Playlist: Improve scaling of artwork
+* PlaylistTabs: Add option to show 'add playlist' button ([#83](https://github.com/ludouzi/fooyin/issues/83))
+* PlaylistTabs: Add status icon to active playlist
+* PlaylistOrganiser: Add status icon, background to active playlist
+* Settings: Improve layout/formatting of some pages
+* Scripting: Add playlist depth variable, functions to pad string left/right
+* Sorting: Use QCollator for natural sorting ([#73](https://github.com/ludouzi/fooyin/pull/73))
+* WaveBar: Add context options to control track waveform data
+* WaveBar: Add current disk cache size, with option to clear
+
+### Fixes
+
+* DirBrowser: Fix double-click, middle-click actions
+* Engine: Fix playback of high resolution audio ([#76](https://github.com/ludouzi/fooyin/issues/76))
+* InfoWidget: Fix crash for languages other than English
+* Library: Fix updating monitoring status
+* LibraryTree: Fix double-click behaviour
+* Playlist: Fix crash when active playlist is empty
+* Playlist: Fix crash when removing rows
+* Playlist: Fix crash when using undo/redo
+* Playlist: Fix display issues switching to single-column mode
+* Playlist: Fix index for keep active playlist
+* Playlist: Fix incorrect playing index
+* Playlist: Fix playback on toggling 'playback follows cursor'
+* Playlist: Fix removing moved columns
+* Playlist: Fix select all not selecting all
+* PlaylistOrganiser: Fix selecting current playlist on startup
+* TagEditor: Fix updating album artist field
+
+
 ## [0.4.1](https://github.com/ludouzi/fooyin/releases/tag/v0.4.1) (2024-04-14)
 
 ### Features

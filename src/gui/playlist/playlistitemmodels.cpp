@@ -187,11 +187,18 @@ void PlaylistContainerItem::calculateSize()
     m_size = totalSize;
 }
 
+PlaylistTrackItem::PlaylistTrackItem(std::vector<RichScript> columns, const Track& track)
+    : m_columns{std::move(columns)}
+    , m_track{track}
+    , m_rowHeight{0}
+{ }
+
 PlaylistTrackItem::PlaylistTrackItem(RichScript left, RichScript right, const Track& track)
     : m_left{std::move(left)}
     , m_right{std::move(right)}
     , m_track{track}
     , m_rowHeight{0}
+    , m_depth{0}
 { }
 
 std::vector<RichScript> PlaylistTrackItem::columns() const
@@ -207,11 +214,6 @@ RichScript PlaylistTrackItem::column(int column) const
 
     return m_columns.at(column);
 }
-
-PlaylistTrackItem::PlaylistTrackItem(std::vector<RichScript> columns, const Track& track)
-    : m_columns{std::move(columns)}
-    , m_track{track}
-{ }
 
 RichScript PlaylistTrackItem::left() const
 {
@@ -233,6 +235,11 @@ int PlaylistTrackItem::rowHeight() const
     return m_rowHeight;
 }
 
+int PlaylistTrackItem::depth() const
+{
+    return m_depth;
+}
+
 QSize PlaylistTrackItem::size(int column) const
 {
     if(column < 0 || std::cmp_greater_equal(column, m_sizes.size())) {
@@ -242,9 +249,25 @@ QSize PlaylistTrackItem::size(int column) const
     return m_sizes.at(column);
 }
 
+void PlaylistTrackItem::setColumns(const std::vector<RichScript>& columns)
+{
+    m_columns = columns;
+}
+
+void PlaylistTrackItem::setLeftRight(const RichScript& left, const RichScript& right)
+{
+    m_left  = left;
+    m_right = right;
+}
+
 void PlaylistTrackItem::setRowHeight(int height)
 {
     m_rowHeight = height;
+}
+
+void PlaylistTrackItem::setDepth(int depth)
+{
+    m_depth = depth;
 }
 
 void PlaylistTrackItem::removeColumn(int column)

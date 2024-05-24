@@ -74,9 +74,9 @@ private:
 
 FiltersGeneralPageWidget::FiltersGeneralPageWidget(SettingsManager* settings)
     : m_settings{settings}
-    , m_filterHeaders{new QCheckBox(tr("Show Headers"), this)}
-    , m_filterScrollBars{new QCheckBox(tr("Show Scrollbars"), this)}
-    , m_altRowColours{new QCheckBox(tr("Alternating Row Colours"), this)}
+    , m_filterHeaders{new QCheckBox(tr("Show headers"), this)}
+    , m_filterScrollBars{new QCheckBox(tr("Show scrollbars"), this)}
+    , m_altRowColours{new QCheckBox(tr("Alternating row colours"), this)}
     , m_fontButton{new FontButton(Utils::iconFromTheme(Fooyin::Constants::Icons::Font), QStringLiteral(""), this)}
     , m_colourButton{new ColourButton(this)}
     , m_rowHeight{new QSpinBox(this)}
@@ -90,7 +90,7 @@ FiltersGeneralPageWidget::FiltersGeneralPageWidget(SettingsManager* settings)
     auto* appearance       = new QGroupBox(tr("Appearance"), this);
     auto* appearanceLayout = new QGridLayout(appearance);
 
-    auto* rowHeightLabel = new QLabel(tr("Row Height") + QStringLiteral(":"), this);
+    auto* rowHeightLabel = new QLabel(tr("Row height") + QStringLiteral(":"), this);
     auto* fontLabel      = new QLabel(tr("Font") + QStringLiteral(":"), this);
     auto* colourLabel    = new QLabel(tr("Colour") + QStringLiteral(":"), this);
 
@@ -186,7 +186,7 @@ void FiltersGeneralPageWidget::load()
     m_filterScrollBars->setChecked(m_settings->value<Settings::Filters::FilterScrollBar>());
     m_altRowColours->setChecked(m_settings->value<Settings::Filters::FilterAltColours>());
 
-    m_fontButton->setFont(m_settings->value<Settings::Filters::FilterFont>());
+    m_fontButton->setButtonFont(m_settings->value<Settings::Filters::FilterFont>());
     m_colourButton->setColour(m_settings->value<Settings::Filters::FilterColour>());
     m_rowHeight->setValue(m_settings->value<Settings::Filters::FilterRowHeight>());
 
@@ -204,8 +204,12 @@ void FiltersGeneralPageWidget::apply()
     m_settings->set<Settings::Filters::FilterScrollBar>(m_filterScrollBars->isChecked());
     m_settings->set<Settings::Filters::FilterAltColours>(m_altRowColours->isChecked());
 
-    m_settings->set<Settings::Filters::FilterFont>(m_fontButton->font().toString());
-    m_settings->set<Settings::Filters::FilterColour>(m_colourButton->colour().name());
+    if(m_fontButton->fontChanged()) {
+        m_settings->set<Settings::Filters::FilterFont>(m_fontButton->buttonFont().toString());
+    }
+    if(m_colourButton->colourChanged()) {
+        m_settings->set<Settings::Filters::FilterColour>(m_colourButton->colour().name());
+    }
     m_settings->set<Settings::Filters::FilterRowHeight>(m_rowHeight->value());
 
     m_settings->set<Settings::Filters::FilterDoubleClick>(m_doubleClick->currentData().toInt());

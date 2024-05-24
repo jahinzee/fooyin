@@ -68,6 +68,23 @@ struct AudioRenderer::Private
         return true;
     }
 
+    void resetBuffer()
+    {
+        bufferPrefilled     = false;
+        totalSamplesWritten = 0;
+        currentBufferOffset = 0;
+        bufferQueue.clear();
+        tempBuffer.reset();
+    }
+
+    void outputStateChanged(AudioOutput::State state) const
+    {
+        if(state == AudioOutput::State::Disconnected) {
+            emit self->outputStateChanged(state);
+            audioOutput->uninit();
+        }
+    }
+
     void updateInterval() const
     {
         const auto interval = static_cast<int>(static_cast<double>(bufferSize) / format.sampleRate() * 1000 * 0.25);
@@ -206,11 +223,14 @@ void AudioRenderer::stop()
     p->isRunning = false;
     p->writeTimer->stop();
 
-    p->bufferPrefilled     = false;
-    p->totalSamplesWritten = 0;
-    p->currentBufferOffset = 0;
-    p->bufferQueue.clear();
-    p->tempBuffer.reset();
+    p->resetBuffer();
+}
+
+void AudioRenderer::closeOutput()
+{
+    if(p->audioOutput->initialised()) {
+        p->audioOutput->uninit();
+    }
 }
 
 void AudioRenderer::reset()
@@ -219,11 +239,12 @@ void AudioRenderer::reset()
         p->audioOutput->reset();
     }
 
-    p->bufferPrefilled     = false;
-    p->totalSamplesWritten = 0;
-    p->currentBufferOffset = 0;
-    p->bufferQueue.clear();
-    p->tempBuffer.reset();
+    p->resetBuffer();
+}
+
+bool AudioRenderer::isPaused() const
+{
+    return !p->isRunning;
 }
 
 void AudioRenderer::pause(bool paused)
@@ -253,6 +274,8 @@ void AudioRenderer::updateOutput(const OutputCreator& output)
 
     p->audioOutput     = std::move(newOutput);
     p->bufferPrefilled = false;
+    QObject::connect(p->audioOutput.get(), &AudioOutput::stateChanged, this,
+                     [this](const auto state) { p->outputStateChanged(state); });
 }
 
 void AudioRenderer::updateDevice(const QString& device)

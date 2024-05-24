@@ -25,10 +25,11 @@
 #include <utils/settings/settingsmanager.h>
 #include <utils/utils.h>
 
-#include <QApplication>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QStyle>
+
+constexpr auto ToolTipDelay = 5;
 
 namespace {
 QColor blendColors(const QColor& color1, const QColor& color2, double ratio)
@@ -215,8 +216,10 @@ void WaveSeekBar::paintEvent(QPaintEvent* event)
 void WaveSeekBar::mouseMoveEvent(QMouseEvent* event)
 {
     if(isSeeking() && event->buttons() & Qt::LeftButton) {
-        updateMousePosition(event->pos());
-        drawSeekTip();
+        updateMousePosition(event->position().toPoint());
+        if(!m_pressPos.isNull() && std::abs(m_pressPos.x() - event->position().x()) > ToolTipDelay) {
+            drawSeekTip();
+        }
     }
     else {
         QWidget::mouseMoveEvent(event);
@@ -226,8 +229,8 @@ void WaveSeekBar::mouseMoveEvent(QMouseEvent* event)
 void WaveSeekBar::mousePressEvent(QMouseEvent* event)
 {
     if(!m_data.empty() && event->button() == Qt::LeftButton) {
-        updateMousePosition(event->pos());
-        drawSeekTip();
+        m_pressPos = event->position().toPoint();
+        updateMousePosition(event->position().toPoint());
     }
     else {
         QWidget::mousePressEvent(event);
@@ -242,8 +245,9 @@ void WaveSeekBar::mouseReleaseEvent(QMouseEvent* event)
     }
 
     stopSeeking();
+    m_pressPos = {};
 
-    m_position = valueFromPosition(event->pos().x());
+    m_position = valueFromPosition(event->position().x());
     emit sliderMoved(m_position);
 }
 
@@ -335,7 +339,7 @@ void WaveSeekBar::updateRange(int first, int last)
     const QRect updateRect(left, 0, width, height());
     update(updateRect);
 
-    if(isSeeking()) {
+    if(isSeeking() && m_seekTip) {
         drawSeekTip();
     }
 }
@@ -346,11 +350,16 @@ void WaveSeekBar::drawChannel(QPainter& painter, int channel, double height, int
 
     const double maxScale = (height / 2) * m_maxScale;
     const double minScale = height - maxScale;
-    const auto centre     = static_cast<int>(maxScale + y);
+    const double centre   = maxScale + y;
 
-    const bool drawMax  = maxScale > 0;
-    const bool drawMin  = minScale > 0;
-    const int centreGap = drawMax && drawMin ? m_centreGap : 0;
+    const bool drawMax     = maxScale > 0;
+    const bool drawMin     = minScale > 0;
+    const double centreGap = drawMax && drawMin ? m_centreGap : 0;
+
+    if(!m_data.complete || (m_mode & WaveMode::Silence && drawMax && drawMin)) {
+        const auto centreY = static_cast<double>(centre + (centreGap > 0 ? centreGap / 2 : 0));
+        drawSilence(painter, first, last, centreY);
+    }
 
     double rmsScale{1.0};
     if(m_mode & WaveMode::Rms && !(m_mode & WaveMode::MinMax)) {
@@ -429,13 +438,33 @@ void WaveSeekBar::drawChannel(QPainter& painter, int channel, double height, int
             }
         }
     }
+}
 
-    if(!m_data.complete) {
-        painter.setPen({m_colours.maxUnplayed, 1, Qt::SolidLine, Qt::FlatCap});
-        const auto finalX = static_cast<double>(total * m_sampleWidth);
-        auto waveCentre   = static_cast<double>(centre);
-        const QLineF centreLine{finalX, waveCentre, static_cast<double>(rect().right()), waveCentre};
-        painter.drawLine(centreLine);
+void WaveSeekBar::drawSilence(QPainter& painter, int first, int last, double y)
+{
+    const auto currentPosition = static_cast<double>(positionFromValue(m_position));
+    const bool showRms         = m_data.complete && m_mode & WaveMode::Rms;
+    const auto unplayedColour  = showRms ? m_colours.rmsMaxUnplayed : m_colours.maxUnplayed;
+    const auto playedColour    = showRms ? m_colours.rmsMaxPlayed : m_colours.maxPlayed;
+
+    if(currentPosition <= first) {
+        painter.setPen(unplayedColour);
+        const QLineF unplayedLine{static_cast<double>(first), y, static_cast<double>(last), y};
+        painter.drawLine(unplayedLine);
+    }
+    else if(currentPosition >= last) {
+        painter.setPen(playedColour);
+        const QLineF playedLine{static_cast<double>(first), y, static_cast<double>(last), y};
+        painter.drawLine(playedLine);
+    }
+    else {
+        painter.setPen(playedColour);
+        const QLineF unplayedLine{static_cast<double>(first), y, currentPosition, y};
+        painter.drawLine(unplayedLine);
+
+        painter.setPen(unplayedColour);
+        const QLineF playedLine{currentPosition, y, static_cast<double>(last), y};
+        painter.drawLine(playedLine);
     }
 }
 
@@ -460,7 +489,9 @@ void WaveSeekBar::drawSeekTip()
         seekTipPos.setX(seekTipPos.x() - (2 * m_seekTip->width()));
     }
 
-    seekTipPos.setY(std::clamp(seekTipPos.y(), m_seekTip->height(), height()));
+    seekTipPos.setY(std::max(seekTipPos.y(), m_seekTip->height()));
+    seekTipPos.setY(std::min(seekTipPos.y(), height()));
+
     m_seekTip->setPosition(mapTo(window(), seekTipPos));
 }
 } // namespace Fooyin::WaveBar

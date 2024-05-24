@@ -89,8 +89,8 @@ LibraryTreePageWidget::LibraryTreePageWidget(ActionManager* actionManager, Setti
     , m_playlistEnabled{new QCheckBox(tr("Enabled"), this)}
     , m_autoSwitch{new QCheckBox(tr("Switch when changed"), this)}
     , m_playlistName{new QLineEdit(this)}
-    , m_showScrollbar{new QCheckBox(tr("Show Scrollbar"), this)}
-    , m_altColours{new QCheckBox(tr("Alternating Row Colours"), this)}
+    , m_showScrollbar{new QCheckBox(tr("Show scrollbar"), this)}
+    , m_altColours{new QCheckBox(tr("Alternating row colours"), this)}
     , m_fontButton{new FontButton(Utils::iconFromTheme(Constants::Icons::Font), tr("Font"), this)}
     , m_colourButton{new ColourButton(this)}
     , m_rowHeight{new QSpinBox(this)}
@@ -150,7 +150,7 @@ LibraryTreePageWidget::LibraryTreePageWidget(ActionManager* actionManager, Setti
 
     auto* fontLabel      = new QLabel(tr("Font") + QStringLiteral(":"), this);
     auto* colourLabel    = new QLabel(tr("Colour") + QStringLiteral(":"), this);
-    auto* rowHeightLabel = new QLabel(tr("Row Height") + QStringLiteral(":"), this);
+    auto* rowHeightLabel = new QLabel(tr("Row height") + QStringLiteral(":"), this);
 
     int row{0};
     appearanceGroupLayout->addWidget(m_showScrollbar, row++, 0, 1, 2);
@@ -169,7 +169,7 @@ LibraryTreePageWidget::LibraryTreePageWidget(ActionManager* actionManager, Setti
     mainLayout->addWidget(clickBehaviour, 1, 0);
     mainLayout->addWidget(appearanceGroup, 1, 1, 2, 1);
     mainLayout->addWidget(selectionPlaylist, 2, 0);
-    mainLayout->setColumnStretch(2, 1);
+    mainLayout->setColumnStretch(1, 1);
 }
 
 void LibraryTreePageWidget::load()
@@ -225,7 +225,7 @@ void LibraryTreePageWidget::load()
     m_showScrollbar->setChecked(m_settings->value<Settings::Gui::Internal::LibTreeScrollBar>());
     m_altColours->setChecked(m_settings->value<Settings::Gui::Internal::LibTreeAltColours>());
 
-    m_fontButton->setFont(m_settings->value<Settings::Gui::Internal::LibTreeFont>());
+    m_fontButton->setButtonFont(m_settings->value<Settings::Gui::Internal::LibTreeFont>());
     m_colourButton->setColour(m_settings->value<Settings::Gui::Internal::LibTreeColour>());
     m_rowHeight->setValue(m_settings->value<Settings::Gui::Internal::LibTreeRowHeight>());
 }
@@ -241,8 +241,13 @@ void LibraryTreePageWidget::apply()
 
     m_settings->set<Settings::Gui::Internal::LibTreeScrollBar>(m_showScrollbar->isChecked());
     m_settings->set<Settings::Gui::Internal::LibTreeAltColours>(m_altColours->isChecked());
-    m_settings->set<Settings::Gui::Internal::LibTreeFont>(m_fontButton->font().toString());
-    m_settings->set<Settings::Gui::Internal::LibTreeColour>(m_colourButton->colour().name());
+
+    if(m_fontButton->fontChanged()) {
+        m_settings->set<Settings::Gui::Internal::LibTreeFont>(m_fontButton->buttonFont().toString());
+    }
+    if(m_colourButton->colourChanged()) {
+        m_settings->set<Settings::Gui::Internal::LibTreeColour>(m_colourButton->colour().name());
+    }
     m_settings->set<Settings::Gui::Internal::LibTreeRowHeight>(m_rowHeight->value());
 
     m_model->processQueue();

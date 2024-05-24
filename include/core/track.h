@@ -67,7 +67,7 @@ public:
     using ExtraTags = QMap<QString, QStringList>;
 
     Track();
-    explicit Track(QString filepath);
+    explicit Track(const QString& filepath);
     ~Track();
 
     Track(const Track& other);
@@ -95,6 +95,7 @@ public:
     [[nodiscard]] QString filename() const;
     [[nodiscard]] QString path() const;
     [[nodiscard]] QString extension() const;
+    [[nodiscard]] QString filenameExt() const;
     [[nodiscard]] QString title() const;
     [[nodiscard]] QStringList artists() const;
     [[nodiscard]] QStringList uniqueArtists() const;
@@ -131,6 +132,7 @@ public:
 
     [[nodiscard]] uint64_t addedTime() const;
     [[nodiscard]] uint64_t modifiedTime() const;
+    [[nodiscard]] QString lastModified() const;
     [[nodiscard]] uint64_t firstPlayed() const;
     [[nodiscard]] uint64_t lastPlayed() const;
 

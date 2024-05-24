@@ -31,9 +31,12 @@
 #include <utils/settings/settingsmanager.h>
 #include <utils/utils.h>
 
+#include <QAction>
+#include <QApplication>
 #include <QHBoxLayout>
-#include <QLabel>
-#include <QToolButton>
+#include <QJsonObject>
+#include <QMenu>
+#include <QWheelEvent>
 
 #include <chrono>
 
@@ -68,9 +71,6 @@ struct VolumeControl::Private
             volumeIcon->setDefaultAction(muteCmd->action());
         }
 
-        volumeIcon->setStretchEnabled(true);
-        volumeIcon->setAutoRaise(true);
-
         volumeSlider->setMinimumHeight(100);
         volumeSlider->setRange(MinVolume, 1.0);
         volumeSlider->setNaturalValue(settings->value<Settings::Core::OutputVolume>());
@@ -78,6 +78,16 @@ struct VolumeControl::Private
         volumeMenu->hide();
 
         updateDisplay(settings->value<Settings::Core::OutputVolume>());
+        updateButtonStyle();
+    }
+
+    void updateButtonStyle() const
+    {
+        const auto options
+            = static_cast<Settings::Gui::ToolButtonOptions>(settings->value<Settings::Gui::ToolButtonStyle>());
+
+        volumeIcon->setStretchEnabled(options & Settings::Gui::Stretch);
+        volumeIcon->setAutoRaise(!(options & Settings::Gui::Raise));
     }
 
     void showVolumeMenu() const
@@ -137,6 +147,7 @@ VolumeControl::VolumeControl(ActionManager* actionManager, SettingsManager* sett
 {
     auto* layout = new QHBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(0);
 
     layout->addWidget(p->volumeIcon);
 
@@ -148,6 +159,7 @@ VolumeControl::VolumeControl(ActionManager* actionManager, SettingsManager* sett
     settings->subscribe<Settings::Core::OutputVolume>(this, [this](double volume) { p->updateDisplay(volume); });
     settings->subscribe<Settings::Gui::IconTheme>(
         this, [this]() { p->updateDisplay(p->settings->value<Settings::Core::OutputVolume>()); });
+    settings->subscribe<Settings::Gui::ToolButtonStyle>(this, [this]() { p->updateButtonStyle(); });
 }
 
 VolumeControl::~VolumeControl() = default;
@@ -160,6 +172,11 @@ QString VolumeControl::name() const
 QString VolumeControl::layoutName() const
 {
     return QStringLiteral("VolumeControls");
+}
+
+void VolumeControl::wheelEvent(QWheelEvent* event)
+{
+    QApplication::sendEvent(p->volumeSlider, event);
 }
 } // namespace Fooyin
 

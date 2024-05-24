@@ -424,6 +424,8 @@ LibraryTreeWidget::LibraryTreeWidget(MusicLibrary* library, TrackSelectionContro
                      [this](int /*id*/, const TrackList& tracks) { p->handleTracksAdded(tracks); });
     QObject::connect(library, &MusicLibrary::tracksUpdated, this,
                      [this](const TrackList& tracks) { p->handleTracksUpdated(tracks); });
+    QObject::connect(library, &MusicLibrary::tracksPlayed, this,
+                     [this](const TrackList& tracks) { p->model->refreshTracks(tracks); });
     QObject::connect(library, &MusicLibrary::tracksDeleted, p->model, &LibraryTreeModel::removeTracks);
     QObject::connect(library, &MusicLibrary::tracksSorted, this, [this]() { p->reset(); });
 }
@@ -473,7 +475,7 @@ void LibraryTreeWidget::contextMenuEvent(QContextMenuEvent* event)
         p->trackSelection->addTrackContextMenu(menu);
     }
 
-    menu->popup(mapToGlobal(event->pos()));
+    menu->popup(event->globalPos());
 }
 } // namespace Fooyin
 

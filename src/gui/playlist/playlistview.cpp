@@ -657,7 +657,7 @@ void PlaylistView::Private::recalculatePadding()
     for(auto& item : m_viewItems) {
         item.padding = 0;
 
-        if(item.hasChildren) {
+        if(item.hasChildren || item.parentItem == -1) {
             continue;
         }
 
@@ -1133,11 +1133,6 @@ bool PlaylistView::Private::dropOn(QDropEvent* event, int& dropRow, int& dropCol
     QModelIndex index{dropIndex};
     const QPoint pos = event->position().toPoint();
 
-    if(m_self->viewport()->rect().contains(pos)
-       && (!index.isValid() || !visualRect(index, RectRule::FullRow).contains(pos))) {
-        index = {};
-    }
-
     if(!(m_model->supportedDropActions() & event->dropAction())) {
         return false;
     }
@@ -1444,7 +1439,7 @@ void PlaylistView::Private::drawRowBackground(QPainter* painter, const QStyleOpt
 
     const auto paintRects = rectsToPaint(option, y);
     for(const auto& rect : paintRects) {
-        if(bg != Qt::NoBrush && rect.width() > 0) {
+        if(rect.width() > 0) {
             opt.rect = rect;
             painter->fillRect(opt.rect, bg);
             style->drawControl(QStyle::CE_ItemViewItem, &opt, painter, m_self);
@@ -2096,8 +2091,12 @@ void PlaylistView::dragMoveEvent(QDragMoveEvent* event)
         event->setDropAction(Qt::MoveAction);
     }
 
-    const QModelIndex index = findIndexAt(pos, true);
-    p->m_hoverIndex         = index;
+    QModelIndex index = findIndexAt(pos, true);
+    p->m_hoverIndex   = index;
+
+    if(!index.isValid() && p->itemCount() > 0) {
+        index = p->m_viewItems.back().index;
+    }
 
     if(index.isValid() && showDropIndicator()) {
         const QRect rect      = p->visualRect(index, RectRule::FullRow, false);
@@ -2201,6 +2200,10 @@ void PlaylistView::dropEvent(QDropEvent* event)
     int col{-1};
     int row{-1};
     QModelIndex index = findIndexAt(event->position().toPoint(), true);
+
+    if(!index.isValid() && p->itemCount() > 0) {
+        index = p->m_viewItems.back().index;
+    }
 
     if(p->dropOn(event, row, col, index)) {
         const Qt::DropAction action = dragDropMode() == InternalMove ? Qt::MoveAction : event->dropAction();
@@ -2493,8 +2496,6 @@ void PlaylistView::setSelection(const QRect& rect, QItemSelectionModel::Selectio
 
 void PlaylistView::currentChanged(const QModelIndex& current, const QModelIndex& previous)
 {
-    QAbstractItemView::currentChanged(current, previous);
-
     if(previous.isValid()) {
         viewport()->update(p->visualRect(previous, RectRule::FullRow, false));
     }

@@ -51,7 +51,8 @@ QString formatDateTime(uint64_t time)
         return {};
     }
 
-    return QDateTime::fromSecsSinceEpoch(static_cast<qint64>(time)).toString(Qt::ISODate);
+    const auto dateTime = QDateTime::fromMSecsSinceEpoch(static_cast<qint64>(time));
+    return dateTime.toString(Qt::ISODate);
 }
 } // namespace
 
@@ -92,6 +93,8 @@ void MprisPlugin::initialise(const GuiPluginContext& context)
     m_coverProvider    = new CoverProvider(m_settings, this);
 
     m_coverProvider->setUsePlaceholder(false);
+    m_coverProvider->setAlwaysStoreThumbnail(true);
+    m_coverProvider->setLimitThumbSize(false);
     m_coverProvider->setCoverKey(QStringLiteral("MPRISCOVER"));
 
     QObject::connect(m_windowController, &WindowController::isFullScreenChanged, this,
@@ -416,7 +419,7 @@ void MprisPlugin::loadMetaData(const PlaylistTrack& playlistTrack)
     }
 
     if(m_coverProvider) {
-        const QPixmap cover = m_coverProvider->trackCover(track, Track::Cover::Front);
+        const QPixmap cover = m_coverProvider->trackCoverThumbnail(track, Track::Cover::Front);
         if(cover.isNull()) {
             return;
         }

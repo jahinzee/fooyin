@@ -45,6 +45,7 @@
 #include <QJsonObject>
 #include <QMenu>
 #include <QMouseEvent>
+#include <QStyle>
 #include <QUndoStack>
 
 #include <stack>
@@ -116,7 +117,7 @@ public:
 
     [[nodiscard]] int widgetCount() const override
     {
-        return m_widget ? 1 : 0;
+        return m_widget && !qobject_cast<Dummy*>(m_widget) ? 1 : 0;
     }
 
     [[nodiscard]] WidgetList widgets() const override
@@ -180,6 +181,7 @@ struct EditableLayout::Private
     QPointer<OverlayWidget> overlay;
     RootContainer* root;
     bool layoutEditing{false};
+    bool prevShowHandles{false};
 
     WidgetContext* editingContext;
     QJsonObject widgetClipboard;
@@ -197,18 +199,33 @@ struct EditableLayout::Private
         , editingContext{new WidgetContext(self, Context{"Fooyin.LayoutEditing"}, self)}
         , layoutHistory{new QUndoStack(self)}
     {
-        box->setContentsMargins(5, 5, 5, 5);
+        updateMargins();
         box->addWidget(root);
 
         widgetProvider->setCommandStack(layoutHistory);
 
         settings->subscribe<Settings::Gui::LayoutEditing>(self, [this](bool enabled) { changeEditingState(enabled); });
+        settings->subscribe<Settings::Gui::Internal::EditableLayoutMargin>(self, [this]() { updateMargins(); });
     }
 
     void setupDefault() const
     {
         root->reset();
         settings->set<Settings::Gui::LayoutEditing>(true);
+    }
+
+    void updateMargins() const
+    {
+        const int margin = settings->value<Settings::Gui::Internal::EditableLayoutMargin>();
+        if(margin >= 0) {
+            box->setContentsMargins(margin, margin, margin, margin);
+        }
+        else {
+            box->setContentsMargins(self->style()->pixelMetric(QStyle::PM_LayoutLeftMargin),
+                                    self->style()->pixelMetric(QStyle::PM_LayoutTopMargin),
+                                    self->style()->pixelMetric(QStyle::PM_LayoutRightMargin),
+                                    self->style()->pixelMetric(QStyle::PM_LayoutBottomMargin));
+        }
     }
 
     void changeEditingState(bool editing)
@@ -218,6 +235,9 @@ struct EditableLayout::Private
         }
 
         if(editing) {
+            prevShowHandles = settings->value<Settings::Gui::Internal::SplitterHandles>();
+            settings->set<Settings::Gui::Internal::SplitterHandles>(true);
+
             actionManager->overrideContext(editingContext, true);
             overlay = new OverlayWidget(self);
             qApp->installEventFilter(self);
@@ -228,6 +248,8 @@ struct EditableLayout::Private
             if(overlay) {
                 overlay->deleteLater();
             }
+
+            settings->set<Settings::Gui::Internal::SplitterHandles>(prevShowHandles);
         }
     }
 
@@ -343,7 +365,7 @@ struct EditableLayout::Private
                 widgetProvider->setupReplaceWidgetMenu(self, changeMenu, parent, currentWidget->id());
                 menu->addMenu(changeMenu);
 
-                if(parent && parent != root) {
+                if(parent) {
                     auto* splitMenu = new QMenu(tr("&Split"), menu);
                     widgetProvider->setupSplitWidgetMenu(self, splitMenu, parent, currentWidget->id());
                     menu->addMenu(splitMenu);
@@ -495,9 +517,7 @@ EditableLayout::EditableLayout(ActionManager* actionManager, WidgetProvider* wid
 
 EditableLayout::~EditableLayout()
 {
-    if(p->layoutEditing) {
-        p->changeEditingState(false);
-    }
+    p->settings->set<Settings::Gui::LayoutEditing>(false);
 }
 
 void EditableLayout::initialise()
@@ -522,9 +542,7 @@ void EditableLayout::initialise()
                      [redo](bool canRedo) { redo->setEnabled(canRedo); });
     redo->setEnabled(p->layoutHistory->canRedo());
 
-    if(!loadLayout()) {
-        p->setupDefault();
-    }
+    changeLayout(p->layoutProvider->currentLayout());
 }
 
 std::optional<Layout> EditableLayout::saveCurrentToLayout(const QString& name)
@@ -586,7 +604,7 @@ bool EditableLayout::eventFilter(QObject* watched, QEvent* event)
         QObject::connect(p->editingMenu, &QMenu::aboutToHide, this, [this]() { p->hideOverlay(); });
 
         const QPoint pos = mouseEvent->globalPosition().toPoint();
-        QWidget* widget  = QApplication::widgetAt(pos);
+        QWidget* widget  = childAt(mapFromGlobal(pos));
         FyWidget* child  = p->findSplitterChild(widget);
 
         if(!child) {
@@ -608,6 +626,13 @@ void EditableLayout::changeLayout(const Layout& layout)
 
     if(!loadLayout(layout)) {
         p->setupDefault();
+    }
+
+    if(p->root->widgetCount() == 0) {
+        p->settings->set<Settings::Gui::LayoutEditing>(true);
+    }
+    else {
+        p->settings->set<Settings::Gui::LayoutEditing>(false);
     }
 }
 
@@ -657,12 +682,6 @@ bool EditableLayout::loadLayout(const Layout& layout)
 
     topWidget->finalise();
     return true;
-}
-
-bool EditableLayout::loadLayout()
-{
-    const Layout layout = p->layoutProvider->currentLayout();
-    return loadLayout(layout);
 }
 
 QJsonObject EditableLayout::saveWidget(FyWidget* widget)

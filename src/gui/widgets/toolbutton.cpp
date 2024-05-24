@@ -25,14 +25,18 @@
 namespace Fooyin {
 ToolButton::ToolButton(QWidget* parent)
     : QToolButton{parent}
-    , m_padding{5}
+    , m_padding{20}
     , m_minimumSize{10}
     , m_maximumSize{100}
+    , m_stretchEnabled{false}
 { }
 
 void ToolButton::setStretchEnabled(bool enabled)
 {
-    setSizePolicy(enabled ? QSizePolicy::Expanding : QSizePolicy::Preferred, QSizePolicy::Preferred);
+    m_stretchEnabled = enabled;
+    setSizePolicy(enabled ? QSizePolicy::Preferred : QSizePolicy::Fixed,
+                  enabled ? QSizePolicy::Preferred : QSizePolicy::Fixed);
+    update();
 }
 
 void ToolButton::setIconPadding(int padding)
@@ -65,10 +69,13 @@ void ToolButton::paintEvent(QPaintEvent* /*event*/)
     // Remove menu indicator
     opt.features &= ~QStyleOptionToolButton::HasMenu;
 
-    const QRect& rect  = opt.rect;
-    const int baseSize = std::min(rect.height(), rect.width()) - (2 * m_padding);
-    const int maxSize  = std::clamp(baseSize, m_minimumSize, m_maximumSize);
-    opt.iconSize       = {maxSize, maxSize};
+    if(m_stretchEnabled) {
+        const auto rect    = style()->subControlRect(QStyle::CC_ToolButton, &opt, QStyle::SC_ToolButton, this);
+        const int length   = std::min(rect.height(), rect.width());
+        const int baseSize = length - 2 * static_cast<int>((static_cast<double>(m_padding) / 100) * length);
+        const int maxSize  = std::clamp(baseSize, m_minimumSize, m_maximumSize);
+        opt.iconSize       = {maxSize, maxSize};
+    }
 
     painter.drawComplexControl(QStyle::CC_ToolButton, opt);
 }

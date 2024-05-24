@@ -494,8 +494,7 @@ void AutoHeaderView::addHeaderAlignmentMenu(QMenu* menu, const QPoint& pos)
     alignCentre->setCheckable(true);
     alignRight->setCheckable(true);
 
-    const QModelIndex index     = model()->index(0, logical);
-    const auto currentAlignment = model()->data(index, Qt::TextAlignmentRole).value<Qt::Alignment>();
+    const auto currentAlignment = model()->headerData(logical, orientation(), SectionAlignment).value<Qt::Alignment>();
 
     if(currentAlignment & Qt::AlignLeft) {
         alignLeft->setChecked(true);
@@ -507,8 +506,8 @@ void AutoHeaderView::addHeaderAlignmentMenu(QMenu* menu, const QPoint& pos)
         alignRight->setChecked(true);
     }
 
-    auto changeAlignment = [this, index](Qt::Alignment alignment) {
-        model()->setData(index, alignment.toInt(), Qt::TextAlignmentRole);
+    auto changeAlignment = [this, logical](Qt::Alignment alignment) {
+        model()->setHeaderData(logical, orientation(), alignment.toInt(), SectionAlignment);
     };
 
     QObject::connect(alignLeft, &QAction::triggered, this, [changeAlignment]() { changeAlignment(Qt::AlignLeft); });
@@ -609,7 +608,7 @@ void AutoHeaderView::mousePressEvent(QMouseEvent* event)
         return;
     }
 
-    const QPoint position = event->pos();
+    const QPoint position = event->position().toPoint();
     const int pos         = orientation() == Qt::Horizontal ? position.x() : position.y();
     const int handleIndex = p->sectionHandleAt(pos);
 
@@ -637,7 +636,7 @@ void AutoHeaderView::mousePressEvent(QMouseEvent* event)
 
 void AutoHeaderView::mouseMoveEvent(QMouseEvent* event)
 {
-    const QPoint position = event->pos();
+    const QPoint position = event->position().toPoint();
     const int pos         = orientation() == Qt::Horizontal ? position.x() : position.y();
     const int handleIndex = p->sectionHandleAt(pos);
 
@@ -681,7 +680,7 @@ void AutoHeaderView::mouseReleaseEvent(QMouseEvent* event)
     }
 
     if(p->state == SectionState::None) {
-        const QPoint pos       = event->pos();
+        const QPoint pos       = event->position().toPoint();
         const int handleIndex  = p->sectionHandleAt(orientation() == Qt::Horizontal ? pos.x() : pos.y());
         const int logicalIndex = logicalIndexAt(pos);
 

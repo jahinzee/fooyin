@@ -65,6 +65,7 @@ private:
     void updateRange(int first, int last);
 
     void drawChannel(QPainter& painter, int channel, double height, int first, int last, int y);
+    void drawSilence(QPainter& painter, int first, int last, double y);
     void drawSeekTip();
 
     SettingsManager* m_settings;
@@ -72,6 +73,7 @@ private:
     WaveformData<float> m_data;
     double m_scale;
     uint64_t m_position;
+    QPoint m_pressPos;
     QPoint m_seekPos;
     QPointer<ToolTip> m_seekTip;
 

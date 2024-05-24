@@ -61,6 +61,7 @@ public:
     void setupConnections();
     void setupActions();
 
+    void onColumnChanged(const PlaylistColumn& column);
     void onPresetChanged(const PlaylistPreset& preset);
     void changePreset(const PlaylistPreset& preset);
 
@@ -109,7 +110,7 @@ public:
     void sortColumn(int column, Qt::SortOrder order);
     void resetSort(bool force = false);
 
-    void addSortMenu(QMenu* parent);
+    void addSortMenu(QMenu* parent, bool disabled);
     void addPresetMenu(QMenu* parent);
 
     PlaylistWidget* self;

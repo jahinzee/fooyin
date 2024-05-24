@@ -85,6 +85,7 @@
 #include <gui/widgetprovider.h>
 #include <gui/windowcontroller.h>
 #include <utils/actions/actionmanager.h>
+#include <utils/settings/settingsdialogcontroller.h>
 #include <utils/settings/settingsmanager.h>
 #include <utils/utils.h>
 
@@ -175,7 +176,7 @@ struct GuiApplication::Private
         , fileMenu{new FileMenu(actionManager, settingsManager, self)}
         , editMenu{new EditMenu(actionManager, settingsManager, self)}
         , viewMenu{new ViewMenu(actionManager, &selectionController, settingsManager, self)}
-        , playbackMenu{new PlaybackMenu(actionManager, playerController, self)}
+        , playbackMenu{new PlaybackMenu(actionManager, playerController, settingsManager, self)}
         , libraryMenu{new LibraryMenu(actionManager, library, settingsManager, self)}
         , helpMenu{new HelpMenu(actionManager, self)}
         , propertiesDialog{new PropertiesDialog(settingsManager, self)}
@@ -309,7 +310,7 @@ struct GuiApplication::Private
         QObject::connect(fileMenu, &FileMenu::requestAddFolders, self, [this]() { addFolders(); });
         QObject::connect(viewMenu, &ViewMenu::openQuickSetup, editableLayout.get(), &EditableLayout::showQuickSetup);
         QObject::connect(engine, &EngineController::trackStatusChanged, self, [this](TrackStatus status) {
-            if(status == InvalidTrack) {
+            if(status == TrackStatus::InvalidTrack) {
                 const Track track = playerController->currentTrack();
                 if(track.isValid() && !QFileInfo::exists(track.filepath())) {
                     showTrackNotFoundMessage(track);
@@ -365,12 +366,12 @@ struct GuiApplication::Private
         layoutProvider.registerLayout(R"({"Name":"Empty"})");
 
         layoutProvider.registerLayout(
-            R"({"Name":"Simple","Widgets":[{"SplitterVertical":{"State":"AAAA/wAAAAEAAAADAAAAFgAAA6YAAAAXAP////8BAAAAAgA=",
-            "Widgets":[{"StatusBar":{}},{"SplitterHorizontal":{"State":"AAAA/wAAAAEAAAACAAABYAAABeoA/////wEAAAABAA==",
-            "Widgets":[{"LibraryTree":{"Grouping":"Artist/Album","ID":"8c3bf224ae774bd780cc2ff3ad638081"}},
-            {"PlaylistTabs":{"Widgets":[{"Playlist":{}}]}}]}},{"SplitterHorizontal":{
-            "State":"AAAA/wAAAAEAAAAEAAAAcgAAAswAAAA2AAAAGAD/////AQAAAAEA","Widgets":[{"PlayerControls":{}},{"SeekBar":{}},
-            {"PlaylistControls":{}},{"VolumeControls":{}}]}}]}}]})");
+            R"({"Name":"Simple","Widgets":[{"SplitterVertical":{"State":"AAAA/wAAAAEAAAADAAAAHAAAAn0AAAAXAP////8BAAAAAgA=",
+            "Widgets":[{"SplitterHorizontal":{"State":"AAAA/wAAAAEAAAAEAAAAggAABqEAAAA+AAAAHAD/////AQAAAAEA","Widgets":[
+            {"PlayerControls":{}},{"SeekBar":{}},{"PlaylistControls":{}},{"VolumeControls":{}}]}},{"SplitterHorizontal":{
+            "State":"AAAA/wAAAAEAAAACAAAA9QAABAoA/////wEAAAABAA==","Widgets":[{"SplitterVertical":{
+            "State":"AAAA/wAAAAEAAAACAAABfQAAAPEA/////wEAAAACAA==","Widgets":[{"LibraryTree":{}},{"ArtworkPanel":{}}]}},
+            {"PlaylistTabs":{"Widgets":[{"Playlist":{}}]}}]}},{"StatusBar":{}}]}}]})");
 
         layoutProvider.registerLayout(
             R"({"Name":"Vision","Widgets":[{"SplitterVertical":{"State":"AAAA/wAAAAEAAAADAAAAHAAAA6EAAAAWAP////8BAAAAAgA=",
@@ -456,7 +457,7 @@ struct GuiApplication::Private
 
         widgetProvider.registerWidget(
             QStringLiteral("SeekBar"),
-            [this]() { return new SeekBar(playerController, settingsManager, mainWindow.get()); }, tr("SeekBar"));
+            [this]() { return new SeekBar(playerController, settingsManager, mainWindow.get()); }, tr("Seekbar"));
         widgetProvider.setSubMenus(QStringLiteral("SeekBar"), {tr("Controls")});
 
         widgetProvider.registerWidget(
@@ -587,6 +588,16 @@ GuiApplication::GuiApplication(const CorePluginContext& core)
     updateCache(p->settingsManager->value<Settings::Gui::Internal::PixmapCacheSize>());
     p->settingsManager->subscribe<Settings::Gui::Internal::PixmapCacheSize>(this, updateCache);
     p->settingsManager->subscribe<Settings::Gui::Internal::ArtworkThumbnailSize>(this, CoverProvider::clearCache);
+
+    QObject::connect(p->settingsManager->settingsDialog(), &SettingsDialogController::opening, this, [this]() {
+        const bool isLayoutEditing = p->settingsManager->value<Settings::Gui::LayoutEditing>();
+        // Layout editing mode overrides the global action context, so disable it until the dialog closes
+        p->settingsManager->set<Settings::Gui::LayoutEditing>(false);
+        QObject::connect(
+            p->settingsManager->settingsDialog(), &SettingsDialogController::closing, this,
+            [this, isLayoutEditing]() { p->settingsManager->set<Settings::Gui::LayoutEditing>(isLayoutEditing); },
+            Qt::SingleShotConnection);
+    });
 }
 
 GuiApplication::~GuiApplication() = default;

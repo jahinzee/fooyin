@@ -19,9 +19,10 @@
 
 #include <core/track.h>
 
-#include <core/constants.h>
 #include <utils/crypto.h>
+#include <utils/utils.h>
 
+#include <QDir>
 #include <QFileInfo>
 #include <QIODevice>
 
@@ -35,6 +36,7 @@ struct Track::Private : public QSharedData
     Type type{0};
     QString filepath;
     QString relativePath;
+    QString directory;
     QString filename;
     QString extension;
     QString title;
@@ -70,27 +72,17 @@ struct Track::Private : public QSharedData
     QString sort;
 
     bool metadataWasModified{false};
-
-    explicit Private(QString filepath_)
-        : filepath{std::move(filepath_)}
-    {
-        if(filepath.isEmpty()) {
-            return;
-        }
-
-        const QFileInfo fileInfo{this->filepath};
-        filename  = fileInfo.baseName();
-        extension = fileInfo.completeSuffix();
-    }
 };
 
 Track::Track()
     : Track{QStringLiteral("")}
 { }
 
-Track::Track(QString filepath)
-    : p{new Private(std::move(filepath))}
-{ }
+Track::Track(const QString& filepath)
+    : p{new Private()}
+{
+    setFilePath(filepath);
+}
 
 bool Track::operator==(const Track& other) const
 {
@@ -108,8 +100,13 @@ Track& Track::operator=(const Track& other) = default;
 
 QString Track::generateHash()
 {
+    QString title = p->title;
+    if(title.isEmpty()) {
+        title = p->directory + p->filename;
+    }
+
     p->hash = Utils::generateHash(p->artists.join(QStringLiteral(",")), p->album, QString::number(p->discNumber),
-                                  QString::number(p->trackNumber), p->title);
+                                  QString::number(p->trackNumber), title);
     return p->hash;
 }
 
@@ -172,8 +169,12 @@ QString Track::albumHash() const
     if(!p->artists.isEmpty()) {
         hash.append(p->artists.join(QStringLiteral(",")));
     }
+
     if(!p->album.isEmpty()) {
         hash.append(p->album);
+    }
+    else {
+        hash.append(p->directory);
     }
 
     return hash.join(QStringLiteral("|"));
@@ -238,6 +239,11 @@ QString Track::path() const
 QString Track::extension() const
 {
     return p->extension;
+}
+
+QString Track::filenameExt() const
+{
+    return QFileInfo{p->filepath}.fileName();
 }
 
 QString Track::title() const
@@ -420,6 +426,11 @@ uint64_t Track::modifiedTime() const
     return p->modifiedTime;
 }
 
+QString Track::lastModified() const
+{
+    return Utils::formatTimeMs(p->modifiedTime);
+}
+
 uint64_t Track::firstPlayed() const
 {
     return p->firstPlayed;
@@ -464,9 +475,12 @@ void Track::setFilePath(const QString& path)
 {
     p->filepath = path;
 
-    const QFileInfo fileInfo{path};
-    p->filename  = fileInfo.baseName();
-    p->extension = fileInfo.completeSuffix();
+    if(!path.isEmpty()) {
+        const QFileInfo fileInfo{path};
+        p->filename  = fileInfo.completeBaseName();
+        p->extension = fileInfo.suffix();
+        p->directory = fileInfo.dir().dirName();
+    }
 }
 
 void Track::setRelativePath(const QString& path)

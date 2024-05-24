@@ -25,6 +25,7 @@
 
 #include <core/track.h>
 #include <gui/guiconstants.h>
+#include <utils/widgets/autoheaderview.h>
 
 #include <QColor>
 #include <QFont>
@@ -217,8 +218,14 @@ void FilterModel::sortOnColumn(int column, Qt::SortOrder order)
 
 void FilterModel::setFont(const QString& font)
 {
-    p->font.fromString(font);
-    emit dataChanged({}, {}, {Qt::FontRole});
+    if(font.isEmpty()) {
+        p->font = {};
+    }
+    else {
+        p->font.fromString(font);
+    }
+
+    emit dataChanged({}, {}, {Qt::FontRole, Qt::SizeHintRole});
 }
 
 void FilterModel::setColour(const QColor& colour)
@@ -242,23 +249,43 @@ Qt::ItemFlags FilterModel::flags(const QModelIndex& index) const
 
 QVariant FilterModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
-    if(role != Qt::TextAlignmentRole && role != Qt::DisplayRole) {
-        return {};
+    if(role == Qt::TextAlignmentRole) {
+        return (Qt::AlignHCenter);
     }
 
     if(orientation == Qt::Orientation::Vertical) {
         return {};
     }
 
-    if(role == Qt::TextAlignmentRole) {
-        return (Qt::AlignHCenter);
+    if(role == AutoHeaderView::SectionAlignment) {
+        return columnAlignment(section).toInt();
     }
 
-    if(section < 0 || section >= static_cast<int>(p->columns.size())) {
-        return tr("Filter");
+    if(role == Qt::DisplayRole) {
+        if(section < 0 || section >= static_cast<int>(p->columns.size())) {
+            return tr("Filter");
+        }
+        return p->columns.at(section).name;
     }
 
-    return p->columns.at(section).name;
+    return {};
+}
+
+bool FilterModel::setHeaderData(int section, Qt::Orientation /*orientation*/, const QVariant& value, int role)
+{
+    if(role != AutoHeaderView::SectionAlignment) {
+        return false;
+    }
+
+    if(section < 0 || section >= columnCount({})) {
+        return {};
+    }
+
+    changeColumnAlignment(section, value.value<Qt::Alignment>());
+
+    emit dataChanged({}, {}, {Qt::TextAlignmentRole});
+
+    return true;
 }
 
 QVariant FilterModel::data(const QModelIndex& index, int role) const
@@ -291,23 +318,6 @@ QVariant FilterModel::data(const QModelIndex& index, int role) const
     }
 
     return {};
-}
-
-bool FilterModel::setData(const QModelIndex& index, const QVariant& value, int role)
-{
-    if(role != Qt::TextAlignmentRole) {
-        return false;
-    }
-
-    if(!checkIndex(index, CheckIndexOption::IndexIsValid)) {
-        return {};
-    }
-
-    changeColumnAlignment(index.column(), value.value<Qt::Alignment>());
-
-    emit dataChanged({}, {}, {Qt::TextAlignmentRole});
-
-    return true;
 }
 
 int FilterModel::columnCount(const QModelIndex& /*parent*/) const
@@ -416,6 +426,22 @@ void FilterModel::updateTracks(const TrackList& tracks)
                               [this, columns, tracksToUpdate] { p->populator.run(columns, tracksToUpdate); });
 
     addTracks(tracks);
+}
+
+void FilterModel::refreshTracks(const TrackList& tracks)
+{
+    for(const Track& track : tracks) {
+        if(!p->trackParents.contains(track.id())) {
+            continue;
+        }
+
+        const auto parents = p->trackParents.at(track.id());
+        for(const auto& parent : parents) {
+            if(p->nodes.contains(parent)) {
+                p->nodes.at(parent).replaceTrack(track);
+            }
+        }
+    }
 }
 
 void FilterModel::removeTracks(const TrackList& tracks)

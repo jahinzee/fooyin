@@ -220,6 +220,15 @@ struct PlaylistPopulator::Private
         subheaders.clear();
     }
 
+    void evaluateTrackScript(RichScript& script, const Track& track)
+    {
+        script.text.clear();
+        const auto evalScript = parser.evaluate(script.script, track);
+        if(!evalScript.isEmpty()) {
+            script.text = formatter.evaluate(evalScript);
+        }
+    }
+
     PlaylistItem* iterateTrack(const Track& track, int index)
     {
         PlaylistItem* parent = &root;
@@ -230,14 +239,6 @@ struct PlaylistPopulator::Private
         if(!currentPreset.track.isValid()) {
             return nullptr;
         }
-
-        auto evaluateTrack = [this, &track](RichScript& script) {
-            script.text.clear();
-            const auto evalScript = parser.evaluate(script.script, track);
-            if(!evalScript.isEmpty()) {
-                script.text = formatter.evaluate(evalScript);
-            }
-        };
 
         registry->setTrackProperties(index, trackDepth);
 
@@ -252,13 +253,14 @@ struct PlaylistPopulator::Private
             playlistTrack = {trackRow.columns, track};
         }
         else {
-            evaluateTrack(trackRow.leftText);
-            evaluateTrack(trackRow.rightText);
+            evaluateTrackScript(trackRow.leftText, track);
+            evaluateTrackScript(trackRow.rightText, track);
 
             playlistTrack = {trackRow.leftText, trackRow.rightText, track};
         }
 
         playlistTrack.setRowHeight(trackRow.rowHeight);
+        playlistTrack.setDepth(trackDepth);
         playlistTrack.calculateSize();
 
         const QString baseKey = Utils::generateHash(parent->key(), track.hash(), QString::number(index));
@@ -373,6 +375,47 @@ void PlaylistPopulator::runTracks(const Id& playlistId, const PlaylistPreset& pr
     p->registry->setup(playlistId, p->playerController->playbackQueue());
 
     p->runTracksGroup(tracks);
+
+    setState(Idle);
+}
+
+void PlaylistPopulator::updateTracks(const Id& playlistId, const PlaylistPreset& preset,
+                                     const PlaylistColumnList& columns, const TrackItemMap& tracks)
+{
+    setState(Running);
+
+    p->currentPreset = preset;
+    p->registry->setup(playlistId, p->playerController->playbackQueue());
+
+    ItemList updatedTracks;
+
+    for(const auto& [track, item] : tracks) {
+        PlaylistTrackItem& trackData = std::get<0>(item.data());
+
+        p->registry->setTrackProperties(item.index(), trackData.depth());
+
+        if(!columns.empty()) {
+            std::vector<RichScript> trackColumns;
+            for(const auto& column : columns) {
+                const auto evalScript = p->parser.evaluate(column.field, track);
+                trackColumns.emplace_back(column.field, p->formatter.evaluate(evalScript));
+            }
+            trackData.setColumns(trackColumns);
+        }
+        else {
+            RichScript trackLeft{preset.track.leftText};
+            RichScript trackRight{preset.track.rightText};
+
+            p->evaluateTrackScript(trackLeft, track);
+            p->evaluateTrackScript(trackRight, track);
+
+            trackData.setLeftRight(trackLeft, trackRight);
+        }
+
+        updatedTracks.push_back(item);
+    }
+
+    emit tracksUpdated(updatedTracks);
 
     setState(Idle);
 }

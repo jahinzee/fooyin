@@ -72,10 +72,10 @@ DirBrowserPageWidget::DirBrowserPageWidget(SettingsManager* settings)
     : m_settings{settings}
     , m_treeMode{new QRadioButton(tr("Tree"), this)}
     , m_listMode{new QRadioButton(tr("List"), this)}
-    , m_showIcons{new QCheckBox(tr("Show Icons"), this)}
-    , m_indentList{new QCheckBox(tr("Show Indent"), this)}
-    , m_showControls{new QCheckBox(tr("Show Controls"), this)}
-    , m_showLocation{new QCheckBox(tr("Show Location"), this)}
+    , m_showIcons{new QCheckBox(tr("Show icons"), this)}
+    , m_indentList{new QCheckBox(tr("Show indent"), this)}
+    , m_showControls{new QCheckBox(tr("Show controls"), this)}
+    , m_showLocation{new QCheckBox(tr("Show location"), this)}
     , m_doubleClick{new QComboBox(this)}
     , m_middleClick{new QComboBox(this)}
     , m_playbackOnSend{new QCheckBox(tr("Start playback on send"), this)}
@@ -113,10 +113,10 @@ DirBrowserPageWidget::DirBrowserPageWidget(SettingsManager* settings)
     displayOptionsLayout->addWidget(m_showLocation, 3, 0);
 
     auto* mainLayout = new QGridLayout(this);
-    mainLayout->addWidget(clickBehaviour, 0, 0, 1, 2);
-    mainLayout->addWidget(browserMode, 1, 0, 1, 1);
-    mainLayout->addWidget(displayOptions, 1, 1, 1, 2);
-    mainLayout->setColumnStretch(2, 1);
+    mainLayout->addWidget(clickBehaviour, 0, 0);
+    mainLayout->addWidget(browserMode, 1, 0);
+    mainLayout->addWidget(displayOptions, 2, 0);
+    // mainLayout->setColumnStretch(2, 1);
     mainLayout->setRowStretch(mainLayout->rowCount(), 1);
 
     using ActionIndexMap = std::map<int, int>;

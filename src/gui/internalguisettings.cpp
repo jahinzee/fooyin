@@ -23,7 +23,6 @@
 #include <utils/settings/settingsmanager.h>
 
 #include <QApplication>
-#include <QFont>
 #include <QIcon>
 #include <QPalette>
 
@@ -56,10 +55,10 @@ GuiSettings::GuiSettings(SettingsManager* settingsManager)
     m_settings->createSetting<LastPlaylistId>(0, QStringLiteral("Playlist/LastPlaylistId"));
     m_settings->createSetting<CursorFollowsPlayback>(false, QStringLiteral("Playlist/CursorFollowsPlayback"));
     m_settings->createSetting<PlaybackFollowsCursor>(false, QStringLiteral("Playlist/PlaybackFollowsCursor"));
+    m_settings->createSetting<ToolButtonStyle>(0, QStringLiteral("Interface/ToolButtonStyle"));
 
     m_settings->createSetting<Internal::EditingMenuLevels>(2, QStringLiteral("Interface/EditingMenuLevels"));
-    m_settings->createSetting<Internal::SplitterHandles>(true, QStringLiteral("Interface/SplitterHandles"));
-    m_settings->createSetting<Internal::SeekBarElapsedTotal>(false, QStringLiteral("SeekBar/ElapsedTotal"));
+    m_settings->createSetting<Internal::SplitterHandles>(false, QStringLiteral("Interface/SplitterHandles"));
     m_settings->createSetting<Internal::PlaylistAltColours>(true, QStringLiteral("PlaylistWidget/AlternatingColours"));
     m_settings->createSetting<Internal::PlaylistHeader>(true, QStringLiteral("PlaylistWidget/Header"));
     m_settings->createSetting<Internal::PlaylistScrollBar>(true, QStringLiteral("PlaylistWidget/Scrollbar"));
@@ -86,12 +85,11 @@ GuiSettings::GuiSettings(SettingsManager* settingsManager)
                                                              QStringLiteral("LibraryTree/SelectionPlaylistName"));
     m_settings->createSetting<Internal::LibTreeScrollBar>(true, QStringLiteral("LibraryTree/Scrollbar"));
     m_settings->createSetting<Internal::LibTreeAltColours>(false, QStringLiteral("LibraryTree/AlternatingColours"));
-    m_settings->createSetting<Internal::LibTreeFont>(QFont{}.toString(), QStringLiteral("LibraryTree/Font"));
+    m_settings->createSetting<Internal::LibTreeFont>(QStringLiteral(""), QStringLiteral("LibraryTree/Font"));
     m_settings->createSetting<Internal::LibTreeColour>(QApplication::palette().text().color().name(),
                                                        QStringLiteral("LibraryTree/Colour"));
     m_settings->createSetting<Internal::LibTreeRowHeight>(0, QStringLiteral("LibraryTree/RowHeight"));
     m_settings->createTempSetting<Internal::SystemIconTheme>(QIcon::themeName());
-    m_settings->createSetting<Internal::SeekBarLabels>(true, QStringLiteral("SeekBar/Labels"));
     m_settings->createSetting<Internal::DirBrowserPath>(QStringLiteral(""), QStringLiteral("DirectoryBrowser/Path"));
     m_settings->createSetting<Internal::DirBrowserIcons>(true, QStringLiteral("DirectoryBrowser/Icons"));
     m_settings->createSetting<Internal::DirBrowserDoubleClick>(5,
@@ -115,5 +113,8 @@ GuiSettings::GuiSettings(SettingsManager* settingsManager)
     m_settings->createSetting<Internal::LibTreeSendPlayback>(true, QStringLiteral("LibraryTree/StartPlaybackOnSend"));
     m_settings->createSetting<Internal::DirBrowserSendPlayback>(true,
                                                                 QStringLiteral("DirectoryBrowser/StartPlaybackOnSend"));
+    m_settings->createSetting<Internal::EditableLayoutMargin>(-1, QStringLiteral("Interface/EditableLayoutMargin"));
+    m_settings->createSetting<Internal::PlaylistTabsAddButton>(false, QStringLiteral("PlaylistTabs/ShowAddButton"));
+    m_settings->createSetting<Internal::SplitterHandleSize>(-1, QStringLiteral("Interface/SplitterHandleSize"));
 }
 } // namespace Fooyin

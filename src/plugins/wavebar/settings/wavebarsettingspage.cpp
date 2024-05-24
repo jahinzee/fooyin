@@ -58,6 +58,7 @@ private:
 
     QCheckBox* m_minMax;
     QCheckBox* m_rms;
+    QCheckBox* m_silence;
 
     QRadioButton* m_downmixOff;
     QRadioButton* m_downmixStereo;
@@ -76,12 +77,13 @@ private:
 
 WaveBarSettingsPageWidget::WaveBarSettingsPageWidget(SettingsManager* settings)
     : m_settings{settings}
-    , m_minMax{new QCheckBox(tr("MinMax"), this)}
+    , m_minMax{new QCheckBox(tr("Min/Max"), this)}
     , m_rms{new QCheckBox(tr("RMS"), this)}
+    , m_silence{new QCheckBox(tr("Silence"), this)}
     , m_downmixOff{new QRadioButton(tr("Off"), this)}
     , m_downmixStereo{new QRadioButton(tr("Stereo"), this)}
     , m_downmixMono{new QRadioButton(tr("Mono"), this)}
-    , m_showCursor{new QCheckBox(tr("Show Progress Cursor"), this)}
+    , m_showCursor{new QCheckBox(tr("Show progress cursor"), this)}
     , m_channelScale{new QDoubleSpinBox(this)}
     , m_cursorWidth{new QSpinBox(this)}
     , m_barWidth{new QSpinBox(this)}
@@ -92,11 +94,11 @@ WaveBarSettingsPageWidget::WaveBarSettingsPageWidget(SettingsManager* settings)
 {
     auto* layout = new QGridLayout(this);
 
-    auto* cursorWidthLabel = new QLabel(tr("Cursor Width") + QStringLiteral(":"), this);
-    auto* barWidthLabel    = new QLabel(tr("Bar Width") + QStringLiteral(":"), this);
-    auto* barGapLabel      = new QLabel(tr("Bar Gap") + QStringLiteral(":"), this);
-    auto* maxScaleLabel    = new QLabel(tr("Max Scale") + QStringLiteral(":"), this);
-    auto* centreGapLabel   = new QLabel(tr("Centre Gap") + QStringLiteral(":"), this);
+    auto* cursorWidthLabel = new QLabel(tr("Cursor width") + QStringLiteral(":"), this);
+    auto* barWidthLabel    = new QLabel(tr("Bar width") + QStringLiteral(":"), this);
+    auto* barGapLabel      = new QLabel(tr("Bar gap") + QStringLiteral(":"), this);
+    auto* maxScaleLabel    = new QLabel(tr("Max scale") + QStringLiteral(":"), this);
+    auto* centreGapLabel   = new QLabel(tr("Centre gap") + QStringLiteral(":"), this);
 
     m_cursorWidth->setMinimum(1);
     m_cursorWidth->setMaximum(20);
@@ -129,10 +131,13 @@ WaveBarSettingsPageWidget::WaveBarSettingsPageWidget(SettingsManager* settings)
     auto* modeGroup  = new QGroupBox(tr("Mode"), this);
     auto* modeLayout = new QVBoxLayout(modeGroup);
 
+    m_silence->setToolTip(tr("Draw a line in place of silence"));
+
     modeLayout->addWidget(m_minMax);
     modeLayout->addWidget(m_rms);
+    modeLayout->addWidget(m_silence);
 
-    auto* channelScaleLabel = new QLabel(tr("Channel Scale") + QStringLiteral(":"), this);
+    auto* channelScaleLabel = new QLabel(tr("Channel scale") + QStringLiteral(":"), this);
 
     auto* downmixGroupBox = new QGroupBox(tr("Downmix"), this);
     auto* downmixGroup    = new QButtonGroup(this);
@@ -152,6 +157,7 @@ WaveBarSettingsPageWidget::WaveBarSettingsPageWidget(SettingsManager* settings)
     cursorGroupLayout->addWidget(m_showCursor, 0, 0, 1, 2);
     cursorGroupLayout->addWidget(cursorWidthLabel, 1, 0);
     cursorGroupLayout->addWidget(m_cursorWidth, 1, 1);
+    cursorGroupLayout->setColumnStretch(2, 1);
 
     auto* scaleGroup       = new QGroupBox(tr("Scale"), this);
     auto* scaleGroupLayout = new QGridLayout(scaleGroup);
@@ -161,6 +167,7 @@ WaveBarSettingsPageWidget::WaveBarSettingsPageWidget(SettingsManager* settings)
     scaleGroupLayout->addWidget(m_channelScale, row++, 1);
     scaleGroupLayout->addWidget(maxScaleLabel, row, 0);
     scaleGroupLayout->addWidget(m_maxScale, row++, 1);
+    scaleGroupLayout->setColumnStretch(2, 1);
 
     auto* dimensionGroup       = new QGroupBox(tr("Dimension"), this);
     auto* dimensionGroupLayout = new QGridLayout(dimensionGroup);
@@ -172,6 +179,7 @@ WaveBarSettingsPageWidget::WaveBarSettingsPageWidget(SettingsManager* settings)
     dimensionGroupLayout->addWidget(m_barGap, row++, 1);
     dimensionGroupLayout->addWidget(centreGapLabel, row, 0);
     dimensionGroupLayout->addWidget(m_centreGap, row++, 1);
+    dimensionGroupLayout->setColumnStretch(2, 1);
 
     auto* cacheGroup       = new QGroupBox(tr("Cache"), this);
     auto* cacheGroupLayout = new QGridLayout(cacheGroup);
@@ -185,19 +193,18 @@ WaveBarSettingsPageWidget::WaveBarSettingsPageWidget(SettingsManager* settings)
         updateCacheSize();
     });
 
-    cacheGroupLayout->addWidget(m_cacheSizeLabel);
-    cacheGroupLayout->addWidget(clearCacheButton);
+    cacheGroupLayout->addWidget(m_cacheSizeLabel, 0, 0);
+    cacheGroupLayout->addWidget(clearCacheButton, 1, 0);
+    cacheGroupLayout->setColumnStretch(1, 1);
 
     row = 0;
     layout->addWidget(modeGroup, row, 0);
     layout->addWidget(downmixGroupBox, row++, 1);
     layout->addWidget(dimensionGroup, row, 0);
     layout->addWidget(scaleGroup, row++, 1);
-    layout->addWidget(cursorGroup, row++, 0);
-    layout->addWidget(cacheGroup, row, 0);
-
+    layout->addWidget(cursorGroup, row, 0);
+    layout->addWidget(cacheGroup, row++, 1);
     layout->setRowStretch(layout->rowCount(), 1);
-    layout->setColumnStretch(3, 1);
 }
 
 void WaveBarSettingsPageWidget::load()
@@ -213,6 +220,7 @@ void WaveBarSettingsPageWidget::load()
     const auto mode = static_cast<WaveModes>(m_settings->value<Settings::WaveBar::Mode>());
     m_minMax->setChecked(mode & WaveMode::MinMax);
     m_rms->setChecked(mode & WaveMode::Rms);
+    m_silence->setChecked(mode & WaveMode::Silence);
 
     const auto downMixOption = static_cast<DownmixOption>(m_settings->value<Settings::WaveBar::Downmix>());
     if(downMixOption == DownmixOption::Off) {
@@ -254,6 +262,9 @@ void WaveBarSettingsPageWidget::apply()
     }
     if(m_rms->isChecked()) {
         mode |= WaveMode::Rms;
+    }
+    if(m_silence->isChecked()) {
+        mode |= WaveMode::Silence;
     }
     m_settings->set<Settings::WaveBar::Mode>(static_cast<int>(mode));
 }

@@ -7,11 +7,12 @@
 <br />
 <a href="https://github.com/ludouzi/fooyin/actions/workflows/build.yml"><img src="https://github.com/ludouzi/fooyin/actions/workflows/build.yml/badge.svg" alt="Build status"></a>
 <a href="https://app.codacy.com/gh/ludouzi/fooyin/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade"><img src="https://app.codacy.com/project/badge/Grade/ae0c3e9825d849b0b64697e59e4dfea6" alt="Code quality"></a>
+<a href="https://repology.org/project/fooyin/versions"><img src="https://repology.org/badge/tiny-repos/fooyin.svg" alt="Packaging status"></a>
 </p>
 
 ## What is fooyin?
 
-fooyin is a music player built around customisation. It offers a growing list of widgets to manage and play your local music
+Fooyin is a music player built around customisation. It offers a growing list of widgets to manage and play your local music
 collection. It's extendable through the use of plugins and many widgets make use of *FooScript* to offer an even deeper level of control.
 
 Audio playback is supported by FFmpeg alongside multiple options for output including ALSA and PipeWire, with more to come.
@@ -19,11 +20,9 @@ Audio playback is supported by FFmpeg alongside multiple options for output incl
 A *layout editing mode* enables the entire user interface to be customised,
 starting from a blank slate or a preset layout.
 
-![simple](https://github.com/ludouzi/fooyin/assets/45490980/93a560cd-ed12-4848-a6e0-eca6318cb9a0) | ![2](https://github.com/ludouzi/fooyin/assets/45490980/6b706453-4661-4fbb-af0e-90d193bb298f) | ![3](https://github.com/ludouzi/fooyin/assets/45490980/9351a305-5de5-4f65-87d3-e9ffee4444aa) 
--|-|-
-![4](https://github.com/ludouzi/fooyin/assets/45490980/2ff47d6d-ff0f-4333-85eb-9fd4a82e3550) | ![5](https://github.com/ludouzi/fooyin/assets/45490980/d8fb8631-af72-4b94-b2f0-7c086bb7ac4a) | ![6](https://github.com/ludouzi/fooyin/assets/45490980/48ecfd76-f658-4120-8a98-485faff4ad32) 
-
-Note: The above screenshots were taken using the Otto plasma theme.
+| ![Simple](https://github.com/ludouzi/fooyin/assets/45490980/e01fd4ee-14cf-4b0f-aa3d-76e86b09844a)   | ![Browser](https://github.com/ludouzi/fooyin/assets/45490980/d0e9c686-09c8-46ba-b7b7-f43282059c8d) |
+|-----------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|
+| ![Obsidian](https://github.com/ludouzi/fooyin/assets/45490980/38912757-4e41-46ee-bf62-b88f36af4903) | ![Wave](https://github.com/ludouzi/fooyin/assets/45490980/eba25598-4726-41fb-b271-075f23575bf6)    |
 
 Only Linux is supported at present, though other platforms will be added at a later date.
 
@@ -37,6 +36,7 @@ Only Linux is supported at present, though other platforms will be added at a la
 * [x] Tag editor
 * [x] Directory browser
 * [x] Waveform seekbar
+* [x] MPRIS support
 
 ### Roadmap
 

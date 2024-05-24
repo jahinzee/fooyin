@@ -511,7 +511,10 @@ void FilterWidget::finalise()
     p->multipleColumns = p->columns.size() > 1;
 
     if(!p->columns.empty()) {
-        if(!p->headerState.isEmpty()) {
+        if(p->headerState.isEmpty()) {
+            p->header->setSortIndicator(0, Qt::AscendingOrder);
+        }
+        else {
             QObject::connect(
                 p->model, &QAbstractItemModel::modelReset, this,
                 [this]() {
@@ -582,6 +585,11 @@ void FilterWidget::tracksUpdated(const TrackList& tracks)
         Qt::SingleShotConnection);
 }
 
+void FilterWidget::tracksPlayed(const TrackList& tracks)
+{
+    p->model->refreshTracks(tracks);
+}
+
 void FilterWidget::tracksRemoved(const TrackList& tracks)
 {
     p->model->removeTracks(tracks);
@@ -593,7 +601,7 @@ void FilterWidget::contextMenuEvent(QContextMenuEvent* event)
         return;
     }
 
-    emit requestContextMenu(mapToGlobal(event->pos()));
+    emit requestContextMenu(event->globalPos());
 }
 } // namespace Fooyin::Filters
 

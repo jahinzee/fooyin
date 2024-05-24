@@ -77,8 +77,8 @@ public:
 
     [[nodiscard]] Qt::ItemFlags flags(const QModelIndex& index) const override;
     [[nodiscard]] QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
+    bool setHeaderData(int section, Qt::Orientation orientation, const QVariant& value, int role) override;
     [[nodiscard]] QVariant data(const QModelIndex& index, int role) const override;
-    bool setData(const QModelIndex& index, const QVariant& value, int role) override;
     void fetchMore(const QModelIndex& parent) override;
     bool canFetchMore(const QModelIndex& parent) const override;
     [[nodiscard]] bool hasChildren(const QModelIndex& parent) const override;
@@ -109,6 +109,7 @@ public:
 
     void insertTracks(const TrackGroups& tracks);
     void updateTracks(const std::vector<int>& indexes);
+    void refreshTracks(const std::vector<int>& indexes);
     void removeTracks(const QModelIndexList& indexes);
     void removeTracks(const TrackGroups& groups);
     void updateHeader(Playlist* playlist);
@@ -135,6 +136,7 @@ private:
     void populateModel(PendingData& data);
     void populateTrackGroup(PendingData& data);
     void updateModel(ItemKeyMap& data);
+    void updateTracks(const ItemList& tracks);
     void mergeTrackParents(const TrackIdNodeMap& parents);
 
     QVariant trackData(PlaylistItem* item, const QModelIndex& index, int role) const;

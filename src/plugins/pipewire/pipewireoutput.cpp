@@ -63,27 +63,54 @@ spa_audio_format findSpaFormat(const Fooyin::SampleFormat& format)
 
 void updateChannelMap(spa_audio_info_raw* info, int channels)
 {
+    // Set channels according to: https://xiph.org/flac/format.html
     switch(channels) {
-        case(9):
-            info->position[8] = SPA_AUDIO_CHANNEL_RC;
-            // Fall through
         case(8):
-            info->position[6] = SPA_AUDIO_CHANNEL_FLC;
-            info->position[7] = SPA_AUDIO_CHANNEL_FRC;
-            // Fall through
-        case(6):
-            info->position[4] = SPA_AUDIO_CHANNEL_RL;
+            info->position[7] = SPA_AUDIO_CHANNEL_SR;
+            info->position[6] = SPA_AUDIO_CHANNEL_SL;
             info->position[5] = SPA_AUDIO_CHANNEL_RR;
-            // Fall through
-        case(4):
+            info->position[4] = SPA_AUDIO_CHANNEL_RL;
             info->position[3] = SPA_AUDIO_CHANNEL_LFE;
-            // Fall through
+            info->position[2] = SPA_AUDIO_CHANNEL_FC;
+            info->position[1] = SPA_AUDIO_CHANNEL_FR;
+            info->position[0] = SPA_AUDIO_CHANNEL_FL;
+            break;
+        case(7):
+            info->position[6] = SPA_AUDIO_CHANNEL_SR;
+            info->position[5] = SPA_AUDIO_CHANNEL_SL;
+            info->position[4] = SPA_AUDIO_CHANNEL_RC;
+            info->position[3] = SPA_AUDIO_CHANNEL_LFE;
+            info->position[2] = SPA_AUDIO_CHANNEL_FC;
+            info->position[1] = SPA_AUDIO_CHANNEL_FR;
+            info->position[0] = SPA_AUDIO_CHANNEL_FL;
+            break;
+        case(6):
+            info->position[5] = SPA_AUDIO_CHANNEL_RR;
+            info->position[4] = SPA_AUDIO_CHANNEL_RL;
+            info->position[3] = SPA_AUDIO_CHANNEL_LFE;
+            info->position[2] = SPA_AUDIO_CHANNEL_FC;
+            info->position[1] = SPA_AUDIO_CHANNEL_FR;
+            info->position[0] = SPA_AUDIO_CHANNEL_FL;
+            break;
+        case(5):
+            info->position[4] = SPA_AUDIO_CHANNEL_RR;
+            info->position[3] = SPA_AUDIO_CHANNEL_RL;
+            info->position[2] = SPA_AUDIO_CHANNEL_FC;
+            info->position[1] = SPA_AUDIO_CHANNEL_FR;
+            info->position[0] = SPA_AUDIO_CHANNEL_FL;
+            break;
+        case(4):
+            info->position[3] = SPA_AUDIO_CHANNEL_RR;
+            info->position[2] = SPA_AUDIO_CHANNEL_RL;
+            info->position[1] = SPA_AUDIO_CHANNEL_FR;
+            info->position[0] = SPA_AUDIO_CHANNEL_FL;
+            break;
         case(3):
             info->position[2] = SPA_AUDIO_CHANNEL_FC;
             // Fall through
         case(2):
-            info->position[0] = SPA_AUDIO_CHANNEL_FL;
             info->position[1] = SPA_AUDIO_CHANNEL_FR;
+            info->position[0] = SPA_AUDIO_CHANNEL_FL;
             break;
         case(1):
             info->position[0] = SPA_AUDIO_CHANNEL_MONO;
@@ -97,6 +124,8 @@ void updateChannelMap(spa_audio_info_raw* info, int channels)
 namespace Fooyin::Pipewire {
 struct PipeWireOutput::Private
 {
+    PipeWireOutput* self;
+
     QString device;
     float volume{1.0};
     bool pendingVolumeChange{false};
@@ -111,6 +140,10 @@ struct PipeWireOutput::Private
     std::unique_ptr<PipewireCore> core;
     std::unique_ptr<PipewireStream> stream;
     std::unique_ptr<PipewireRegistry> registry;
+
+    explicit Private(PipeWireOutput* self_)
+        : self{self_}
+    { }
 
     void uninit()
     {
@@ -253,20 +286,25 @@ struct PipeWireOutput::Private
 
         data.chunk->offset = 0;
         data.chunk->stride = self->format.bytesPerFrame();
-        data.chunk->size   = self->stream->bufferSize();
+        data.chunk->size   = size;
 
         self->stream->queueBuffer(pwBuffer);
         self->loop->signal(false);
     }
 
-    static void stateChanged(void* userdata, enum pw_stream_state /*old*/, enum pw_stream_state state,
+    static void stateChanged(void* userdata, enum pw_stream_state old, enum pw_stream_state state,
                              const char* /*error*/)
     {
-        auto* self = static_cast<PipeWireOutput::Private*>(userdata);
+        auto* priv = static_cast<PipeWireOutput::Private*>(userdata);
 
-        if(state == PW_STREAM_STATE_UNCONNECTED || state == PW_STREAM_STATE_PAUSED
-           || state == PW_STREAM_STATE_STREAMING) {
-            self->loop->signal(false);
+        if(state == PW_STREAM_STATE_UNCONNECTED) {
+            QMetaObject::invokeMethod(priv->self, [priv]() { emit priv->self->stateChanged(State::Disconnected); });
+        }
+        else if(old == PW_STREAM_STATE_UNCONNECTED && state == PW_STREAM_STATE_CONNECTING) {
+            // TODO: Handle reconnections
+        }
+        else if(state == PW_STREAM_STATE_PAUSED || state == PW_STREAM_STATE_STREAMING) {
+            priv->loop->signal(false);
         }
     }
 
@@ -280,7 +318,7 @@ struct PipeWireOutput::Private
 };
 
 PipeWireOutput::PipeWireOutput()
-    : p{std::make_unique<Private>()}
+    : p{std::make_unique<Private>(this)}
 { }
 
 PipeWireOutput::~PipeWireOutput() = default;
@@ -370,14 +408,14 @@ OutputState PipeWireOutput::currentState()
     OutputState state;
 
     state.queuedSamples = p->buffer.frameCount();
-    state.freeSamples   = (p->stream->bufferSize() / p->format.bytesPerFrame()) - state.queuedSamples;
+    state.freeSamples   = p->stream->bufferSize() - state.queuedSamples;
 
     return state;
 }
 
 int PipeWireOutput::bufferSize() const
 {
-    return p->stream ? (p->stream->bufferSize() / p->format.bytesPerFrame()) : 0;
+    return p->stream ? p->stream->bufferSize() : 0;
 }
 
 int PipeWireOutput::write(const AudioBuffer& buffer)

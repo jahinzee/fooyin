@@ -160,8 +160,10 @@ void PlaylistWidgetPrivate::setupConnections()
                      [this]() { model->playingTrackChanged(playerController->currentPlaylistTrack()); });
     QObject::connect(playlistController, &PlaylistController::currentPlaylistTracksChanged, this,
                      &PlaylistWidgetPrivate::handleTracksChanged);
+    QObject::connect(playlistController, &PlaylistController::currentPlaylistTracksPlayed, this,
+                     [this](const std::vector<int>& indexes) { model->refreshTracks(indexes); });
     QObject::connect(playlistController, &PlaylistController::currentPlaylistQueueChanged, this,
-                     [this](const std::vector<int>& indexes) { handleTracksChanged(indexes, false); });
+                     [this](const std::vector<int>& indexes) { model->refreshTracks(indexes); });
     QObject::connect(playlistController, &PlaylistController::currentPlaylistChanged, this,
                      [this](Playlist* prevPlaylist, Playlist* playlist) { changePlaylist(prevPlaylist, playlist); });
     QObject::connect(playlistController, &PlaylistController::playlistsLoaded, this,
@@ -173,6 +175,8 @@ void PlaylistWidgetPrivate::setupConnections()
     QObject::connect(playlistController, &PlaylistController::currentPlaylistTracksAdded, this,
                      &PlaylistWidgetPrivate::playlistTracksAdded);
     QObject::connect(&presetRegistry, &PresetRegistry::presetChanged, this, &PlaylistWidgetPrivate::onPresetChanged);
+    QObject::connect(&columnRegistry, &PlaylistColumnRegistry::columnChanged, this,
+                     &PlaylistWidgetPrivate::onColumnChanged);
 
     settings->subscribe<PlaylistHeader>(this, [this](bool show) { setHeaderHidden(!show); });
     settings->subscribe<PlaylistScrollBar>(this, &PlaylistWidgetPrivate::setScrollbarHidden);
@@ -235,6 +239,18 @@ void PlaylistWidgetPrivate::setupActions()
     actionManager->registerAction(removeFromQueueAction, Constants::Actions::RemoveFromQueue,
                                   playlistContext->context());
     QObject::connect(removeFromQueueAction, &QAction::triggered, this, [this]() { dequeueSelectedTracks(); });
+}
+
+void PlaylistWidgetPrivate::onColumnChanged(const PlaylistColumn& changedColumn)
+{
+    auto existingIt = std::find_if(columns.begin(), columns.end(), [&changedColumn](const PlaylistColumn& column) {
+        return column.id == changedColumn.id;
+    });
+
+    if(existingIt != columns.end()) {
+        *existingIt = changedColumn;
+        resetModel();
+    }
 }
 
 void PlaylistWidgetPrivate::onPresetChanged(const PlaylistPreset& preset)
@@ -733,9 +749,19 @@ void PlaylistWidgetPrivate::setSingleMode(bool enabled)
             model->resetColumnAlignments();
             header->resetSectionPositions();
             header->setHeaderSectionWidths({{0, 0.06}, {1, 0.38}, {2, 0.08}, {3, 0.38}, {4, 0.10}});
-            header->setHeaderSectionAlignment(0, Qt::AlignCenter);
-            header->setHeaderSectionAlignment(2, Qt::AlignRight);
-            header->setHeaderSectionAlignment(4, Qt::AlignRight);
+            model->changeColumnAlignment(0, Qt::AlignCenter);
+            model->changeColumnAlignment(2, Qt::AlignRight);
+            model->changeColumnAlignment(4, Qt::AlignRight);
+        };
+
+        auto resetState = [this, resetColumns]() {
+            if(!headerState.isEmpty()) {
+                header->restoreHeaderState(headerState);
+            }
+            else {
+                resetColumns();
+            }
+            updateSpans();
         };
 
         if(std::cmp_equal(header->count(), columns.size())) {
@@ -744,16 +770,7 @@ void PlaylistWidgetPrivate::setSingleMode(bool enabled)
         }
         else {
             QObject::connect(
-                model, &QAbstractItemModel::modelReset, self,
-                [this, resetColumns]() {
-                    if(!headerState.isEmpty()) {
-                        header->restoreHeaderState(headerState);
-                    }
-                    else {
-                        resetColumns();
-                    }
-                    updateSpans();
-                },
+                model, &QAbstractItemModel::modelReset, self, [resetState]() { resetState(); },
                 Qt::SingleShotConnection);
         }
     }
@@ -967,16 +984,22 @@ void PlaylistWidgetPrivate::resetSort(bool force)
     }
 }
 
-void PlaylistWidgetPrivate::addSortMenu(QMenu* parent)
+void PlaylistWidgetPrivate::addSortMenu(QMenu* parent, bool disabled)
 {
     auto* sortMenu = new QMenu(PlaylistWidget::tr("Sort"), parent);
 
-    const auto& groups = sortRegistry.items();
-    for(const auto& script : groups) {
-        auto* switchSort = new QAction(script.name, sortMenu);
-        QObject::connect(switchSort, &QAction::triggered, self, [this, script]() { sortTracks(script.script); });
-        sortMenu->addAction(switchSort);
+    if(disabled) {
+        sortMenu->setEnabled(false);
     }
+    else {
+        const auto& groups = sortRegistry.items();
+        for(const auto& script : groups) {
+            auto* switchSort = new QAction(script.name, sortMenu);
+            QObject::connect(switchSort, &QAction::triggered, self, [this, script]() { sortTracks(script.script); });
+            sortMenu->addAction(switchSort);
+        }
+    }
+
     parent->addMenu(sortMenu);
 }
 
@@ -1132,7 +1155,8 @@ void PlaylistWidget::contextMenuEvent(QContextMenuEvent* event)
     auto* menu = new QMenu(this);
     menu->setAttribute(Qt::WA_DeleteOnClose);
 
-    const bool hasSelection = !p->playlistView->selectionModel()->selectedRows().empty();
+    const auto selected     = p->playlistView->selectionModel()->selectedRows();
+    const bool hasSelection = !selected.empty();
 
     if(hasSelection) {
         auto* playAction = new QAction(tr("&Play"), this);
@@ -1145,7 +1169,7 @@ void PlaylistWidget::contextMenuEvent(QContextMenuEvent* event)
             menu->addAction(removeCmd->action());
         }
 
-        p->addSortMenu(menu);
+        p->addSortMenu(menu, selected.size() == 1);
     }
 
     p->addPresetMenu(menu);

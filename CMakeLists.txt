@@ -8,7 +8,7 @@ include(CheckLevel)
 
 project(
     fooyin
-    VERSION 0.4.1
+    VERSION 0.4.3
     DESCRIPTION "A customisable music player"
     HOMEPAGE_URL "https://github.com/ludouzi/fooyin"
     LANGUAGES CXX
@@ -53,6 +53,7 @@ include(FooyinMacrosInternal)
 fooyin_option(BUILD_SHARED_LIBS "Build fooyin libraries as shared" ON)
 fooyin_option(BUILD_TESTING "Build fooyin tests" OFF)
 fooyin_option(BUILD_PLUGINS "Build plugins included with fooyin" ON)
+fooyin_option(BUILD_ALSA "Build ALSA plugin" ON)
 fooyin_option(BUILD_TRANSLATIONS "Build translation files" ON)
 fooyin_option(BUILD_CCACHE "Build using CCache if found" ON)
 fooyin_option(BUILD_PCH "Build with precompiled header support" OFF)
@@ -60,12 +61,6 @@ fooyin_option(BUILD_WERROR "Build with -Werror" OFF)
 fooyin_option(BUILD_ASAN "Enable AddressSanitizer" OFF)
 fooyin_option(INSTALL_FHS "Install in Linux distros /usr hierarchy" ON)
 fooyin_option(INSTALL_HEADERS "Install public development headers" OFF)
-
-set(FOOYIN_LINK_OPTIONS)
-
-if(BUILD_ASAN)
-    list(APPEND FOOYIN_LINK_OPTIONS -fsanitize=address,undefined)
-endif()
 
 list(
     APPEND
@@ -128,8 +123,6 @@ set_package_properties(Qt6Network PROPERTIES TYPE REQUIRED)
 set_package_properties(Qt6Svg PROPERTIES TYPE REQUIRED)
 
 find_package(Taglib REQUIRED taglib>=1.12)
-find_package(ALSA REQUIRED)
-
 find_package(
     FFmpeg REQUIRED
     COMPONENTS AVCODEC

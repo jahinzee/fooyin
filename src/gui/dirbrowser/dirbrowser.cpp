@@ -260,8 +260,14 @@ struct DirBrowser::Private
             if(index.isValid()) {
                 const QFileInfo filePath{index.data(QFileSystemModel::FilePathRole).toString()};
                 if(filePath.isDir()) {
-                    files.append(
-                        Utils::File::getUrlsInDir(filePath.absoluteFilePath(), Track::supportedFileExtensions()));
+                    if(!onlySelection) {
+                        files.append(
+                            Utils::File::getUrlsInDir(filePath.absoluteFilePath(), Track::supportedFileExtensions()));
+                    }
+                    else {
+                        files.append(Utils::File::getUrlsInDirRecursive(filePath.absoluteFilePath(),
+                                                                        Track::supportedFileExtensions()));
+                    }
                 }
                 else {
                     files.append(QUrl::fromLocalFile(filePath.absoluteFilePath()));
@@ -391,12 +397,9 @@ struct DirBrowser::Private
             backDir    = new ToolButton(self);
             forwardDir = new ToolButton(self);
 
-            upDir->setStretchEnabled(true);
             upDir->setDefaultAction(new QAction(Utils::iconFromTheme(Constants::Icons::Up), tr("Go up"), upDir));
-            backDir->setStretchEnabled(true);
             backDir->setDefaultAction(
                 new QAction(Utils::iconFromTheme(Constants::Icons::GoPrevious), tr("Go back"), backDir));
-            forwardDir->setStretchEnabled(true);
             forwardDir->setDefaultAction(
                 new QAction(Utils::iconFromTheme(Constants::Icons::GoNext), tr("Go forwards"), forwardDir));
 

@@ -67,10 +67,27 @@ struct EngineHandler::Private
         QObject::connect(engine, &AudioEngine::trackAboutToFinish, self, &EngineHandler::trackAboutToFinish);
         QObject::connect(engine, &AudioEngine::positionChanged, playerController,
                          &PlayerController::setCurrentPosition);
+        QObject::connect(engine, &AudioEngine::stateChanged, self,
+                         [this](PlaybackState state) { handleStateChange(state); });
         QObject::connect(engine, &AudioEngine::trackStatusChanged, self,
                          [this](TrackStatus status) { handleTrackStatus(status); });
 
         updateVolume(settings->value<Settings::Core::OutputVolume>());
+    }
+
+    void handleStateChange(PlaybackState state) const
+    {
+        switch(state) {
+            case(PlaybackState::Error):
+            case(PlaybackState::Stopped):
+                playerController->stop();
+                break;
+            case(PlaybackState::Paused):
+                playerController->pause();
+                break;
+            case(PlaybackState::Playing):
+                break;
+        }
     }
 
     void handleTrackStatus(TrackStatus status) const
@@ -79,13 +96,13 @@ struct EngineHandler::Private
             case(TrackStatus::EndOfTrack):
                 playerController->next();
                 break;
-            case(NoTrack):
+            case(TrackStatus::NoTrack):
                 playerController->stop();
                 break;
-            case(InvalidTrack):
-            case(LoadingTrack):
-            case(LoadedTrack):
-            case(BufferedTrack):
+            case(TrackStatus::InvalidTrack):
+            case(TrackStatus::LoadingTrack):
+            case(TrackStatus::LoadedTrack):
+            case(TrackStatus::BufferedTrack):
                 break;
         }
 
@@ -115,7 +132,12 @@ struct EngineHandler::Private
     void changeOutput(const QString& output)
     {
         if(output.isEmpty()) {
-            return;
+            if(outputs.empty() || !currentOutput.name.isEmpty()) {
+                return;
+            }
+            currentOutput = {outputs.cbegin()->first, QStringLiteral("default")};
+            emit self->outputChanged(currentOutput.name);
+            emit self->deviceChanged(currentOutput.device);
         }
 
         const QStringList newOutput = output.split(QStringLiteral("|"));

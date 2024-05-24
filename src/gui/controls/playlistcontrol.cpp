@@ -19,21 +19,19 @@
 
 #include "playlistcontrol.h"
 
-#include <core/coresettings.h>
 #include <core/player/playercontroller.h>
 #include <gui/guiconstants.h>
 #include <gui/guisettings.h>
 #include <gui/widgets/toolbutton.h>
 #include <utils/actions/actionmanager.h>
-#include <utils/actions/command.h>
-#include <utils/enum.h>
 #include <utils/settings/settingsmanager.h>
 #include <utils/utils.h>
 
+#include <QAction>
 #include <QActionGroup>
 #include <QHBoxLayout>
+#include <QJsonObject>
 #include <QMenu>
-#include <QToolButton>
 
 namespace Fooyin {
 struct PlaylistControl::Private
@@ -63,15 +61,22 @@ struct PlaylistControl::Private
         shuffleAction->setToolTip(tr("Shuffle"));
         shuffle->setDefaultAction(shuffleAction);
 
-        repeat->setStretchEnabled(true);
-        shuffle->setStretchEnabled(true);
-
-        repeat->setAutoRaise(true);
-        shuffle->setAutoRaise(true);
-
         setMode(playerController->playMode());
 
         setupMenus();
+        updateButtonStyle();
+    }
+
+    void updateButtonStyle() const
+    {
+        const auto options
+            = static_cast<Settings::Gui::ToolButtonOptions>(settings->value<Settings::Gui::ToolButtonStyle>());
+
+        repeat->setStretchEnabled(options & Settings::Gui::Stretch);
+        repeat->setAutoRaise(!(options & Settings::Gui::Raise));
+
+        shuffle->setStretchEnabled(options & Settings::Gui::Stretch);
+        shuffle->setAutoRaise(!(options & Settings::Gui::Raise));
     }
 
     void setupMenus()
@@ -164,6 +169,7 @@ PlaylistControl::PlaylistControl(PlayerController* playerController, SettingsMan
 {
     auto* layout = new QHBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(0);
 
     layout->addWidget(p->repeat);
     layout->addWidget(p->shuffle);
@@ -173,6 +179,7 @@ PlaylistControl::PlaylistControl(PlayerController* playerController, SettingsMan
                      [this](Playlist::PlayModes mode) { p->setMode(mode); });
 
     settings->subscribe<Settings::Gui::IconTheme>(this, [this]() { p->setMode(p->playerController->playMode()); });
+    settings->subscribe<Settings::Gui::ToolButtonStyle>(this, [this]() { p->updateButtonStyle(); });
 }
 
 PlaylistControl::~PlaylistControl() = default;
